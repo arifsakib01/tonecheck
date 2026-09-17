@@ -1,0 +1,45 @@
+.spinner {
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid rgba(23, 32, 13, 0.3);
+  border-top-color: #17200d;
+  border-radius: 999px;
+  animation: spin 0.7s linear infinite;
+}
+
+.risk-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.55rem 0.85rem;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.risk-high {
+  background: rgba(248, 113, 113, 0.14);
+  color: #fca5a5;
+}
+
+.risk-medium {
+  background: rgba(250, 204, 21, 0.14);
+  color: #fde047;
+}
+
+.risk-low {
+  background: rgba(134, 239, 172, 0.14);
+  color: #86efac;
+}
+
+.phrase-card {
+  border-left: 2px solid #f2a96d;
+  border-radius: 0 1rem 1rem 0;
+  background: #111612;
+  padding: 1rem;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
