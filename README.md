@@ -11,7 +11,7 @@ The single check button trains the model from scratch in milliseconds and combin
 - Common Gen Z slang detection, including terms such as `delulu`, `no cap`, `lowkey`, `sus`, and `left on read`.
 - Bangla-script detection for common blaming, dismissive, and absolute phrases.
 - Banglish detection for common transliterated phrases.
-- High, Medium, and Low risk scoring.
+- Green, Yellow, Red Flag, and Biohazard risk scoring.
 - Sentence-level phrase cards with explanation and healthier alternatives.
 - Full rewrite generation.
 - One simple from-scratch browser ML check.
