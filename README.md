@@ -1,6 +1,6 @@
 # ToneCheck
 
-ToneCheck is a frontend-only communication checker for draft messages. It flags common toxic, passive-aggressive, dismissive, blaming, manipulative, and insulting phrases, then suggests a clearer alternative and a full rewrite.
+ToneCheck is a frontend-only communication checker for messages someone sent you or a draft you are about to send. Its primary workflow uses Gemini to analyze the full context and classify red flags, offensive language, manipulation, passive aggression, defensiveness, and risk, then produce evidence, a rewrite, and a playful savage reply. A local fallback is available when no API key is configured.
 
 The default Quick scan is deliberately browser-only: draft text is analyzed locally with JavaScript pattern matching. An optional Deeper read uses Gemini for contextual analysis when the user supplies their own API key. No backend, database, or build tool is required.
 
@@ -15,7 +15,7 @@ The default Quick scan is deliberately browser-only: draft text is analyzed loca
 - Sentence-level phrase cards with explanation and healthier alternatives.
 - Full rewrite generation.
 - A shareable “savage mode” reply designed for playful social posts.
-- Quick local verdicts plus an optional contextual AI deep read.
+- AI-first contextual verdicts plus a Quick local scan fallback.
 - Copy-to-clipboard support.
 - One responsive AdSense placement using publisher `ca-pub-2623777966141033` and slot `8093693497`.
 - An `ads.txt` file declaring the authorized AdSense seller.
