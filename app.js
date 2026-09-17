@@ -13,8 +13,6 @@ const flagCount = document.querySelector("#flag-count");
 const temperatureLabel = document.querySelector("#temperature-label");
 const temperatureBar = document.querySelector("#temperature-bar");
 const categoryList = document.querySelector("#category-list");
-const aiScanButton = document.querySelector("#ai-scan-button");
-const settingsModal = document.querySelector("#settings-modal");
 const liveTone = document.querySelector("#live-tone");
 const liveToneLabel = document.querySelector("#live-tone-label");
 const liveToneBar = document.querySelector("#live-tone-bar");
@@ -305,16 +303,6 @@ draftInput.addEventListener("input", () => {
   updateLiveTone(draftInput.value);
 });
 
-function openSettings() {
-  settingsModal.classList.remove("hidden");
-  settingsModal.classList.add("flex");
-}
-
-function closeSettings() {
-  settingsModal.classList.add("hidden");
-  settingsModal.classList.remove("flex");
-}
-
 async function runAiScan() {
   const text = draftInput.value.trim();
   if (!text) {
@@ -330,47 +318,20 @@ async function runAiScan() {
   const prediction = predictTone(model, text);
     renderResults(buildAiResult(text, prediction));
   } catch (error) {
-    alert(`On-device AI could not load: ${error.message}. Try Quick local scan instead.`);
+    alert(`The checker could not run: ${error.message}. Please try again.`);
   } finally {
     scanButton.disabled = false;
-    scanLabel.textContent = "Analyze on-device";
+    scanLabel.textContent = "Check my message";
   }
 }
 
 scanButton.addEventListener("click", runAiScan);
-aiScanButton.addEventListener("click", () => {
-  const text = draftInput.value.trim();
-  if (!text) {
-    alert("Paste a message before scanning.");
-    draftInput.focus();
-    return;
-  }
-  aiScanButton.disabled = true;
-  aiScanButton.textContent = "Scanning...";
-  window.setTimeout(() => {
-    renderResults(analyzeLocally(text));
-    aiScanButton.disabled = false;
-    aiScanButton.textContent = "Quick local scan";
-  }, 350);
-});
-document.querySelector("#settings-button").addEventListener("click", openSettings);
-document.querySelector("#close-settings").addEventListener("click", closeSettings);
-document.querySelector("#cancel-settings").addEventListener("click", closeSettings);
-document.querySelector("#save-settings").addEventListener("click", closeSettings);
-settingsModal.addEventListener("click", (event) => {
-  if (event.target === settingsModal) closeSettings();
-});
 
 document.querySelectorAll("[data-example]").forEach((button) => button.addEventListener("click", () => {
   draftInput.value = button.dataset.example;
   draftInput.dispatchEvent(new Event("input"));
   draftInput.focus();
 }));
-
-document.querySelector("#surprise-button").addEventListener("click", () => {
-  const examples = [...document.querySelectorAll("[data-example]")];
-  examples[Math.floor(Math.random() * examples.length)].click();
-});
 
 document.querySelector("#clear-history").addEventListener("click", () => {
   try { localStorage.removeItem(HISTORY_KEY); } catch (error) { console.warn("Could not clear history.", error); }
