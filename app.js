@@ -241,7 +241,7 @@ scanButton.addEventListener("click", () => {
   window.setTimeout(() => {
     renderResults(analyzeLocally(text));
     scanButton.disabled = false;
-    scanLabel.textContent = "Quick scan";
+    scanLabel.textContent = "Give me the verdict";
     loadingSpinner.classList.add("hidden");
   }, 350);
 });
@@ -297,7 +297,7 @@ copySavageButton.addEventListener("click", async () => {
 });
 
 shareButton.addEventListener("click", async () => {
-  const shareText = `ToneCheck found ${riskBadge.textContent.toLowerCase()} in my draft.\n\nSavage reply: “${savageReply.textContent}”\n\nTry it: ${window.location.href}`;
+  const shareText = `ToneCheck verdict: ${riskBadge.textContent}\n\nSavage reply: “${savageReply.textContent}”\n\nTry your own message: ${window.location.origin}${window.location.pathname}\n#ToneCheck #MessageCheck`;
   try {
     if (navigator.share) {
       await navigator.share({ title: "ToneCheck result", text: shareText });

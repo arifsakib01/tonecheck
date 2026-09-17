@@ -78,17 +78,17 @@
 
       <main class="mx-auto max-w-4xl pb-16 pt-20 sm:pt-28">
         <section class="mb-10 text-center">
-          <p class="mb-4 text-xs font-bold uppercase tracking-[0.24em] text-lime">Communication clarity tool</p>
-          <h1 class="text-5xl font-black tracking-[-0.06em] sm:text-7xl">Check your tone <span class="text-lime">before you send.</span></h1>
+          <p class="mb-4 text-xs font-bold uppercase tracking-[0.24em] text-lime">The message reality check</p>
+          <h1 class="text-5xl font-black tracking-[-0.06em] sm:text-7xl">Is your text <span class="text-lime">giving red flag?</span></h1>
           <p class="mx-auto mt-6 max-w-xl text-base leading-7 text-muted sm:text-lg">
-            Check English, Gen Z slang, Bangla, and Banglish drafts for red flags before you send.
+            Paste the message. Get the verdict. Leave with a reply worth sending.
           </p>
         </section>
 
         <section class="rounded-3xl border border-line bg-panel p-5 shadow-glow sm:p-8">
           <div class="mb-4 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
-            <label for="draft-input" class="block text-sm font-bold text-ink">Your draft message</label>
-            <button id="surprise-button" type="button" class="text-left text-xs font-bold text-lime transition hover:text-white sm:text-right">✨ Give me a message to fix</button>
+            <label for="draft-input" class="block text-sm font-bold text-ink">Drop the text here</label>
+            <button id="surprise-button" type="button" class="text-left text-xs font-bold text-lime transition hover:text-white sm:text-right">✨ Try a viral example</button>
           </div>
           <textarea id="draft-input" rows="9" maxlength="10000" class="w-full resize-y rounded-2xl border border-line bg-[#111612] p-5 text-base leading-7 text-ink outline-none transition placeholder:text-[#5f6860] focus:border-lime" placeholder="Paste your draft text here..."></textarea>
           <div class="mt-4">
@@ -112,11 +112,11 @@
             <span id="character-count" class="text-xs text-muted">0 / 10,000</span>
             <div class="flex flex-col gap-2 sm:flex-row">
               <button id="scan-button" type="button" class="inline-flex items-center justify-center gap-3 rounded-full bg-lime px-6 py-3 text-sm font-extrabold text-[#17200d] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70">
-                <span id="scan-label">Quick scan</span>
+                <span id="scan-label">Give me the verdict</span>
                 <span id="loading-spinner" class="spinner hidden" aria-hidden="true"></span>
               </button>
               <button id="ai-scan-button" type="button" class="inline-flex items-center justify-center rounded-full border border-lime px-5 py-3 text-sm font-extrabold text-lime transition hover:bg-lime/10 disabled:cursor-not-allowed disabled:opacity-70">
-                Deep AI scan
+                Deeper read
               </button>
             </div>
           </div>
@@ -147,18 +147,18 @@
           <div class="flex flex-col justify-between gap-4 border-b border-line pb-6 sm:flex-row sm:items-center">
             <div>
               <p class="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-muted">Analysis</p>
-              <h2 class="text-2xl font-bold tracking-tight">Here’s how it may land</h2>
+              <h2 class="text-2xl font-bold tracking-tight">The verdict is in</h2>
             </div>
             <span id="risk-badge" class="risk-badge">Risk: —</span>
           </div>
 
           <div class="border-b border-line py-6">
-            <p class="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-muted">Overall vibe</p>
+            <p class="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-muted">How it lands</p>
             <p id="overall-vibe" class="leading-7 text-[#d9ded8]"></p>
           </div>
 
           <div class="border-b border-line py-6">
-            <p class="mb-5 text-xs font-bold uppercase tracking-[0.18em] text-muted">Phrase-by-phrase</p>
+            <p class="mb-5 text-xs font-bold uppercase tracking-[0.18em] text-muted">Red flags spotted</p>
             <div id="phrase-list" class="space-y-4"></div>
           </div>
 
@@ -198,7 +198,7 @@
       </main>
 
       <footer class="border-t border-line pt-5 text-center text-xs text-[#667068]">
-        Quick scans stay in this browser. Deep AI scans send your draft to Gemini only when you choose that option.
+        Built for screenshots. Your draft stays local unless you choose Deeper read.
       </footer>
     </div>
     <div id="settings-modal" class="fixed inset-0 z-20 hidden items-center justify-center bg-black/70 px-5 backdrop-blur-sm" role="dialog" aria-modal="true">
@@ -215,6 +215,6 @@
         </div>
       </div>
     </div>
-    <script src="app.js?v=ai2"></script>
+    <script src="app.js?v=viral1"></script>
   </body>
 </html>

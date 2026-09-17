@@ -14,6 +14,8 @@ The current implementation is deliberately browser-only: draft text is analyzed 
 - High, Medium, and Low risk scoring.
 - Sentence-level phrase cards with explanation and healthier alternatives.
 - Full rewrite generation.
+- A shareable “savage mode” reply designed for playful social posts.
+- Quick local verdicts plus an optional contextual AI deep read.
 - Copy-to-clipboard support.
 - AdSense placements using publisher `ca-pub-2623777966141033` and slot `8093693497`.
 - An `ads.txt` file declaring the authorized AdSense seller.
