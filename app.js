@@ -9,6 +9,9 @@ const overallVibe = document.querySelector("#overall-vibe");
 const phraseList = document.querySelector("#phrase-list");
 const fullRewrite = document.querySelector("#full-rewrite");
 const copyButton = document.querySelector("#copy-button");
+const savageReply = document.querySelector("#savage-reply");
+const copySavageButton = document.querySelector("#copy-savage-button");
+const shareButton = document.querySelector("#share-button");
 const liveTone = document.querySelector("#live-tone");
 const liveToneLabel = document.querySelector("#live-tone-label");
 const liveToneBar = document.querySelector("#live-tone-bar");
@@ -102,7 +105,29 @@ function analyzeLocally(text) {
       rewrite = `I want to talk about this calmly and be honest about how it affected me without blaming you. ${findings[0].better_alternative} I'd appreciate hearing your perspective so we can find a solution that works for both of us.`;
     }
   }
-  return { risk_level: riskLevel, overall_vibe: overallVibe, problematic_phrases: findings, full_rewrite: rewrite };
+  return {
+    risk_level: riskLevel,
+    overall_vibe: overallVibe,
+    problematic_phrases: findings,
+    full_rewrite: rewrite,
+    savage_reply: createSavageReply(riskLevel, bangla, banglish, findings)
+  };
+}
+
+function createSavageReply(risk, bangla, banglish, findings) {
+  if (bangla) {
+    return risk === "High"
+      ? "তোমার নাটকটা ভালো, কিন্তু আমি এই স্ক্রিপ্টে আর অভিনয় করছি না।"
+      : "ইঙ্গিত না দিয়ে সরাসরি বললে কথাটা দুজনেরই সহজ হতো।";
+  }
+  if (banglish) {
+    return risk === "High"
+      ? "Tomar drama bhalo, kintu ami ei script-e ar acting kortesi na."
+      : "Hint na diye directly bolle, dujoner-i kotha bola easy hoto.";
+  }
+  if (risk === "High") return "That was a lot of drama for a conversation that could have used one honest sentence.";
+  if (risk === "Medium") return findings.length ? "I understood the subtext. Next time, the direct version will save us both the decoding." : "I’m listening—just leave the sarcasm at the door.";
+  return "No red flags detected. You can send this without needing a courtroom defense.";
 }
 
 function updateLiveTone(text) {
@@ -130,6 +155,7 @@ function renderResults(data) {
     <p class="mb-2 text-sm leading-6 text-muted"><span class="font-bold text-[#d9ded8]">Why it may land poorly:</span> ${escapeHtml(phrase.issue)}</p>
     <p class="text-sm leading-6 text-green-300"><span class="font-bold">Better alternative:</span> ${escapeHtml(phrase.better_alternative)}</p></article>`).join("") : '<p class="text-sm leading-6 text-muted">No clearly problematic phrases were identified.</p>';
   fullRewrite.textContent = data.full_rewrite;
+  savageReply.textContent = data.savage_reply;
   resultsContainer.classList.remove("hidden");
   saveHistory(draftInput.value.trim(), data.risk_level);
   resultsContainer.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -181,6 +207,31 @@ copyButton.addEventListener("click", async () => {
     window.setTimeout(() => { copyButton.textContent = "Copy to Clipboard"; }, 1600);
   } catch (error) {
     alert("Could not copy the rewrite. Please select and copy it manually.");
+  }
+});
+
+copySavageButton.addEventListener("click", async () => {
+  try {
+    await navigator.clipboard.writeText(savageReply.textContent);
+    copySavageButton.textContent = "Copied!";
+    window.setTimeout(() => { copySavageButton.textContent = "Copy savage reply"; }, 1600);
+  } catch {
+    alert("Could not copy the savage reply. Please select and copy it manually.");
+  }
+});
+
+shareButton.addEventListener("click", async () => {
+  const shareText = `ToneCheck found ${riskBadge.textContent.toLowerCase()} in my draft.\n\nSavage reply: “${savageReply.textContent}”\n\nTry it: ${window.location.href}`;
+  try {
+    if (navigator.share) {
+      await navigator.share({ title: "ToneCheck result", text: shareText });
+    } else {
+      await navigator.clipboard.writeText(shareText);
+      shareButton.textContent = "Share text copied!";
+      window.setTimeout(() => { shareButton.textContent = "Share result"; }, 1800);
+    }
+  } catch (error) {
+    if (error.name !== "AbortError") alert("Could not share this result.");
   }
 });
 
