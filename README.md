@@ -16,6 +16,7 @@ The current implementation is deliberately browser-only: draft text is analyzed 
 - Full rewrite generation.
 - Copy-to-clipboard support.
 - AdSense placements using publisher `ca-pub-2623777966141033` and slot `8093693497`.
+- An `ads.txt` file declaring the authorized AdSense seller.
 
 ## Files
 
@@ -69,6 +70,7 @@ Opening with `file://` is useful for a quick visual preview, but clipboard permi
 
 - Ads normally do not render from a `file://` URL. Use the deployed HTTPS URL.
 - Replace or confirm the ad slot IDs in `index.html` with the exact units approved in your AdSense account.
+- Confirm that `https://arifsakib01.github.io/tonecheck/ads.txt` loads and contains the publisher declaration.
 - Add the deployed site in AdSense and complete site review before expecting production ads.
 - Add a privacy policy and cookie/consent notice appropriate to your visitors' regions before monetizing.
 - Do not click your own ads or encourage visitors to click them.
