@@ -9,9 +9,6 @@ const overallVibe = document.querySelector("#overall-vibe");
 const phraseList = document.querySelector("#phrase-list");
 const fullRewrite = document.querySelector("#full-rewrite");
 const copyButton = document.querySelector("#copy-button");
-const savageReply = document.querySelector("#savage-reply");
-const copySavageButton = document.querySelector("#copy-savage-button");
-const shareButton = document.querySelector("#share-button");
 const flagCount = document.querySelector("#flag-count");
 const temperatureLabel = document.querySelector("#temperature-label");
 const temperatureBar = document.querySelector("#temperature-bar");
@@ -110,6 +107,48 @@ function trainToneModel() {
   return { vectorize, weights, labels: toneLabels };
 }
 
+async function getOpenSourceClassifier() {
+  if (!classifierPromise) classifierPromise = Promise.resolve().then(trainToneModel);
+  return classifierPromise;
+}
+
+function predictTone(model, text) {
+  const vector = model.vectorize(text);
+  const scores = model.labels.map((label) => {
+    const weights = model.weights.get(label);
+    let value = weights[0];
+    for (let feature = 0; feature < vector.length; feature += 1) value += weights[feature + 1] * vector[feature];
+    return sigmoid(value);
+  });
+  return { labels: model.labels, scores };
+}
+
+function buildAiResult(text, prediction) {
+  const local = analyzeLocally(text);
+  const classifications = prediction.labels.map((label, index) => ({
+    label,
+    detected: prediction.scores[index] >= 0.55,
+    score: Number(prediction.scores[index].toFixed(3)),
+    explanation: prediction.scores[index] >= 0.55
+      ? `The from-scratch browser classifier found language consistent with ${label.toLowerCase()}.`
+      : `The classifier found limited evidence of ${label.toLowerCase()}.`
+  }));
+  const strongestRisk = Math.max(...prediction.labels
+    .map((label, index) => label === "healthy boundary" ? 0 : prediction.scores[index]));
+  const riskLevel = local.risk_level === "High" || strongestRisk >= 0.82
+    ? "High"
+    : local.risk_level === "Medium" || strongestRisk >= 0.62
+      ? "Medium"
+      : "Low";
+  const bangla = /[\u0980-\u09FF]/.test(text);
+  const overallVibe = riskLevel === "High"
+    ? bangla ? "মডেল এবং বাক্যভিত্তিক স্ক্যান বার্তাটিতে চাপ, দোষারোপ বা আক্রমণের শক্তিশালী ইঙ্গিত পেয়েছে।" : "The model and phrase scan found strong signals of pressure, blame, or personal attack."
+    : riskLevel === "Medium"
+      ? bangla ? "কিছু শব্দ অপর পক্ষকে আত্মরক্ষামূলক করে তুলতে পারে, যদিও বার্তার মূল উদ্বেগটি বাস্তব হতে পারে।" : "Some wording may make the recipient defensive, even if the underlying concern is real."
+      : bangla ? "মডেলটি বড় কোনো রেড ফ্ল্যাগ পায়নি; বার্তাটি তুলনামূলকভাবে সরাসরি মনে হচ্ছে।" : "The model found no strong red flags; the message comes across as relatively direct.";
+  return { ...local, risk_level: riskLevel, overall_vibe: overallVibe, classifications };
+}
+
 const detectors = [
   { pattern: /\b(fine,?\s+do whatever you want|whatever|i don't care)\b/i, issue: "Dismissive wording hides a real boundary and can pressure the recipient through indirect resentment.", alternative: "I'm not comfortable with this, and I'd like us to discuss an option that works for both of us." },
   { pattern: /\b(always|never|every time|nothing you do)\b/i, issue: "Absolutist language makes the recipient feel judged and shifts the conversation toward arguing about exceptions.", alternative: "When this happens, I feel affected, and I want to talk about this specific situation." },
@@ -200,24 +239,8 @@ function analyzeLocally(text) {
     overall_vibe: overallVibe,
     problematic_phrases: findings,
     full_rewrite: rewrite,
-    savage_reply: createSavageReply(riskLevel, bangla, banglish, findings)
+    classifications: []
   };
-}
-
-function createSavageReply(risk, bangla, banglish, findings) {
-  if (bangla) {
-    return risk === "High"
-      ? "তোমার নাটকটা ভালো, কিন্তু আমি এই স্ক্রিপ্টে আর অভিনয় করছি না।"
-      : "ইঙ্গিত না দিয়ে সরাসরি বললে কথাটা দুজনেরই সহজ হতো।";
-  }
-  if (banglish) {
-    return risk === "High"
-      ? "Tomar drama bhalo, kintu ami ei script-e ar acting kortesi na."
-      : "Hint na diye directly bolle, dujoner-i kotha bola easy hoto.";
-  }
-  if (risk === "High") return "That was a lot of drama for a conversation that could have used one honest sentence.";
-  if (risk === "Medium") return findings.length ? "I understood the subtext. Next time, the direct version will save us both the decoding." : "I’m listening—just leave the sarcasm at the door.";
-  return "No red flags detected. You can send this without needing a courtroom defense.";
 }
 
 function updateLiveTone(text) {
@@ -226,54 +249,6 @@ function updateLiveTone(text) {
     return;
   }
 
-  async function getOpenSourceClassifier() {
-    if (!classifierPromise) {
-      classifierPromise = Promise.resolve().then(trainToneModel);
-    }
-    return classifierPromise;
-  }
-
-  function predictTone(model, text) {
-    const vector = model.vectorize(text);
-    const scores = model.labels.map((label) => {
-      const weights = model.weights.get(label);
-      let value = weights[0];
-      for (let feature = 0; feature < vector.length; feature += 1) value += weights[feature + 1] * vector[feature];
-      return sigmoid(value);
-    });
-    return { labels: model.labels, scores };
-  }
-
-  function buildAiResult(text, prediction) {
-    const local = analyzeLocally(text);
-    const classifications = prediction.labels.map((label, index) => ({
-      label,
-      detected: prediction.scores[index] >= 0.55,
-      score: Number(prediction.scores[index].toFixed(3)),
-      explanation: prediction.scores[index] >= 0.55
-        ? `The from-scratch browser classifier found language consistent with ${label.toLowerCase()}.`
-        : `The classifier found limited evidence of ${label.toLowerCase()}.`
-    }));
-    const strongestRisk = Math.max(...prediction.labels
-      .map((label, index) => label === "healthy boundary" ? 0 : prediction.scores[index]));
-    const riskLevel = local.risk_level === "High" || strongestRisk >= 0.82
-      ? "High"
-      : local.risk_level === "Medium" || strongestRisk >= 0.62
-        ? "Medium"
-        : "Low";
-    const bangla = /[\u0980-\u09FF]/.test(text);
-    const overallVibe = riskLevel === "High"
-      ? bangla ? "অন-ডিভাইস মডেল এবং বাক্যভিত্তিক স্ক্যান বার্তাটিতে চাপ, দোষারোপ বা আক্রমণের শক্তিশালী ইঙ্গিত পেয়েছে।" : "The on-device model and phrase scan found strong signals of pressure, blame, or personal attack."
-      : riskLevel === "Medium"
-        ? bangla ? "কিছু শব্দ অপর পক্ষকে আত্মরক্ষামূলক করে তুলতে পারে, যদিও বার্তার মূল উদ্বেগটি বাস্তব হতে পারে।" : "Some wording may make the recipient defensive, even if the underlying concern is real."
-        : bangla ? "মডেলটি বড় কোনো রেড ফ্ল্যাগ পায়নি; বার্তাটি তুলনামূলকভাবে সরাসরি মনে হচ্ছে।" : "The model found no strong red flags; the message comes across as relatively direct.";
-    return {
-      ...local,
-      risk_level: riskLevel,
-      overall_vibe: overallVibe,
-      classifications
-    };
-  }
   const findings = analyzeLocally(text).problematic_phrases.length;
   const intensity = Math.min(100, findings * 27 + (/\!{2,}|[A-Z]{5,}/.test(text) ? 18 : 0));
   const level = intensity >= 70 ? "High tension" : intensity >= 30 ? "Needs a softer touch" : "Calm and clear";
@@ -291,7 +266,6 @@ function renderResults(data) {
     overall_vibe: data.overall_vibe || "The message may benefit from a closer look.",
     problematic_phrases: Array.isArray(data.problematic_phrases) ? data.problematic_phrases : [],
     full_rewrite: data.full_rewrite || draftInput.value.trim(),
-    savage_reply: data.savage_reply || "The subtext is showing. Try saying the direct version next time.",
     classifications: Array.isArray(data.classifications) ? data.classifications : []
   };
   riskBadge.textContent = `Risk: ${normalized.risk_level}`;
@@ -321,7 +295,6 @@ function renderResults(data) {
     <p class="mb-2 text-sm leading-6 text-muted"><span class="font-bold text-[#d9ded8]">Why it may land poorly:</span> ${escapeHtml(phrase.issue)}</p>
     <p class="text-sm leading-6 text-green-300"><span class="font-bold">Better alternative:</span> ${escapeHtml(phrase.better_alternative)}</p></article>`).join("") : '<p class="text-sm leading-6 text-muted">No clearly problematic phrases were identified.</p>';
   fullRewrite.textContent = normalized.full_rewrite;
-  savageReply.textContent = normalized.savage_reply;
   resultsContainer.classList.remove("hidden");
   saveHistory(draftInput.value.trim(), normalized.risk_level);
   resultsContainer.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -411,31 +384,6 @@ copyButton.addEventListener("click", async () => {
     window.setTimeout(() => { copyButton.textContent = "Copy to Clipboard"; }, 1600);
   } catch (error) {
     alert("Could not copy the rewrite. Please select and copy it manually.");
-  }
-});
-
-copySavageButton.addEventListener("click", async () => {
-  try {
-    await navigator.clipboard.writeText(savageReply.textContent);
-    copySavageButton.textContent = "Copied!";
-    window.setTimeout(() => { copySavageButton.textContent = "Copy savage reply"; }, 1600);
-  } catch {
-    alert("Could not copy the savage reply. Please select and copy it manually.");
-  }
-});
-
-shareButton.addEventListener("click", async () => {
-  const shareText = `ToneCheck verdict: ${riskBadge.textContent}\n\nSavage reply: “${savageReply.textContent}”\n\nTry your own message: ${window.location.origin}${window.location.pathname}\n#ToneCheck #MessageCheck`;
-  try {
-    if (navigator.share) {
-      await navigator.share({ title: "ToneCheck result", text: shareText });
-    } else {
-      await navigator.clipboard.writeText(shareText);
-      shareButton.textContent = "Share text copied!";
-      window.setTimeout(() => { shareButton.textContent = "Share result"; }, 1800);
-    }
-  } catch (error) {
-    if (error.name !== "AbortError") alert("Could not share this result.");
   }
 });
 

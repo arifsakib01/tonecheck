@@ -1,6 +1,6 @@
 # ToneCheck
 
-ToneCheck is a frontend-only communication checker for messages someone sent you or a draft you are about to send. Its primary workflow trains a compact one-vs-rest logistic-regression classifier in the browser from labeled tone examples. It learns TF-IDF word and phrase weights with gradient descent to classify red flags, offensive language, manipulation, passive aggression, defensiveness, sarcasm, coercion, and healthy boundaries. A deterministic phrase engine supplies exact evidence, rewrites, and playful replies.
+ToneCheck is a frontend-only communication checker for messages someone sent you or a draft you are about to send. Its primary workflow trains a compact one-vs-rest logistic-regression classifier in the browser from labeled tone examples. It learns TF-IDF word and phrase weights with gradient descent to classify red flags, offensive language, manipulation, passive aggression, defensiveness, sarcasm, coercion, and healthy boundaries. A deterministic phrase engine supplies exact evidence and healthier rewrites.
 
 Both scan modes are browser-only. Analyze with built-in ML trains the model from scratch in milliseconds; Quick local scan uses JavaScript pattern matching and does not train a model. No backend, database, external model, API key, or build tool is required.
 
@@ -14,7 +14,6 @@ Both scan modes are browser-only. Analyze with built-in ML trains the model from
 - High, Medium, and Low risk scoring.
 - Sentence-level phrase cards with explanation and healthier alternatives.
 - Full rewrite generation.
-- A shareable “savage mode” reply designed for playful social posts.
 - From-scratch browser ML verdicts plus a deterministic Quick local scan.
 - Copy-to-clipboard support.
 - One responsive AdSense placement using publisher `ca-pub-2623777966141033` and slot `8093693497`.
