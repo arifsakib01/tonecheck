@@ -1,6 +1,6 @@
 # ToneCheck
 
-ToneCheck is a frontend-only communication checker for messages someone sent you or a draft you are about to send. Its primary workflow trains a compact one-vs-rest logistic-regression classifier in the browser from labeled tone examples. It learns TF-IDF word and phrase weights with gradient descent to classify red flags, offensive language, manipulation, passive aggression, defensiveness, sarcasm, coercion, and healthy boundaries. A deterministic phrase engine supplies exact evidence and healthier rewrites.
+ToneCheck is a frontend-only communication checker for messages someone sent you or a draft you are about to send. Its primary workflow trains a compact one-vs-rest logistic-regression classifier in the browser from labeled tone examples. It learns TF-IDF word and phrase weights with gradient descent to classify red flags, offensive language, manipulation, passive aggression, defensiveness, sarcasm, coercion, negging, rage-baiting, humiliation, cyberbullying, harassment, roasting, and healthy boundaries. A deterministic phrase engine supplies exact evidence and healthier rewrites.
 
 The single check button trains the model from scratch in milliseconds and combines it with the phrase detector. No backend, database, external model, API key, or build tool is required.
 
@@ -16,6 +16,8 @@ The single check button trains the model from scratch in milliseconds and combin
 - Full rewrite generation.
 - One simple from-scratch browser ML check.
 - Four-level risk ranks: Green, Yellow, Red Flag, and Biohazard.
+- Distinguishes warning signs from broader toxicity and labels patterns such as guilt-tripping, negging, rage-baiting, harassment, cyberbullying, and humiliation.
+- Treats roasting as context-dependent: a joking phrase is not automatically abusive, but the result explains that consent and mutuality cannot be inferred from text alone.
 - Hidden-intent explanations and three assertive, non-violent clapback options for flagged messages.
 - Copy-to-clipboard support.
 - One responsive AdSense placement using publisher `ca-pub-2623777966141033` and slot `8093693497`.

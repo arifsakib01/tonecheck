@@ -57,6 +57,13 @@ const toneTrainingData = [
   ["sarcasm or mockery", "Sure, genius, explain that one again."],
   ["sarcasm or mockery", "That is cute. Did you really think that would work?"],
   ["sarcasm or mockery", "Great job ruining everything, as usual."],
+  ["negging", "You look surprisingly nice today."],
+  ["negging", "You are pretty smart for someone like you."],
+  ["rage-baiting", "I knew this would make you angry, so I posted it anyway."],
+  ["humiliation", "Everyone should see the embarrassing screenshot you sent me."],
+  ["cyberbullying", "Keep posting that and nobody will ever like you."],
+  ["harassment", "Answer me now. I will keep texting until you do."],
+  ["roasting", "That haircut is terrible, but you know I am kidding."],
   ["healthy boundary", "I am not comfortable with that plan, so I need some time to think."],
   ["healthy boundary", "I felt hurt when that happened. Can we talk about it calmly?"],
   ["healthy boundary", "I cannot continue this conversation while we are insulting each other."],
@@ -143,7 +150,8 @@ function buildAiResult(text, prediction) {
   const strongestRisk = Math.max(...prediction.labels
     .map((label, index) => label === "healthy boundary" ? 0 : prediction.scores[index]));
   const hasThreat = prediction.labels.some((label, index) => label === "threat or coercion" && prediction.scores[index] >= 0.62);
-  const rank = hasThreat || local.problematic_phrases.length >= 4
+  const riskFindings = local.problematic_phrases.filter((phrase) => phrase.category !== "Roasting");
+  const rank = hasThreat || riskFindings.length >= 4
     ? "Biohazard"
     : local.risk_level === "High" || strongestRisk >= 0.82
       ? "Red Flag"
@@ -179,7 +187,13 @@ const detectors = [
   { pattern: /\b(you don't care|you clearly don't love me|ignoring me)\b/i, issue: "This uses guilt or mind-reading to make the recipient prove their care rather than addressing the immediate concern.", alternative: "I feel unheard right now, and I need more attentive communication." },
   { pattern: /\b(shut up|idiot|stupid|pathetic|selfish|loser)\b/i, issue: "Insults attack the person instead of describing the behavior, which can cause lasting harm.", alternative: "I'm too upset to have a productive conversation right now; I need a pause." },
   { pattern: /\b(fuck|fucking|shit|bullshit|bitch|asshole|dumbass)\b/i, issue: "Profanity can intensify the message and make the recipient focus on the attack instead of the underlying issue.", alternative: "I'm very upset about this, and I want to explain what hurt me without insulting you." },
-  { pattern: /\b(if you loved me|prove you care|after all i've done)\b/i, issue: "This frames affection or past effort as leverage, creating guilt instead of inviting an honest choice.", alternative: "This matters to me, and I'd like to understand whether we can find a compromise." },
+  { pattern: /\b(if you loved me|prove you care|after all i've done)\b/i, issue: "This frames affection or past effort as leverage, creating guilt instead of inviting an honest choice.", alternative: "This matters to me, and I'd like to understand whether we can find a compromise.", category: "Guilt-tripping" },
+  { pattern: /\b(surprisingly nice|pretty smart for|not bad for a|you clean up well)\b/i, issue: "This is a backhanded compliment that lowers the recipient's confidence while inviting them to seek approval.", alternative: "You look great today. I mean that sincerely.", category: "Negging" },
+  { pattern: /\b(answer me now|keep texting until|won't stop messaging|respond or else)\b/i, issue: "Repeated unwanted contact or pressure to respond can cross into harassment and ignores the recipient's right to pause.", alternative: "Please reply when you have capacity. I will give you space for now.", category: "Harassment" },
+  { pattern: /\b(everyone should see|post(?:ing)? your screenshot|share your secret|embarrass you)\b/i, issue: "This threatens public embarrassment or exposure, which is humiliation rather than consensual teasing.", alternative: "I am upset, but I will keep this private and discuss it with you directly.", category: "Humiliation" },
+  { pattern: /\b(nobody will ever like you|ugly|loser|worthless|kill yourself)\b/i, issue: "Targeting someone's identity, appearance, or worth to intimidate or isolate them is cyberbullying or abuse, not a joke.", alternative: "I disagree with what happened, but I will address the behavior without attacking your worth.", category: "Cyberbullying" },
+  { pattern: /\b(i posted it to make you angry|knew this would trigger you|just to get a reaction)\b/i, issue: "The message openly describes provoking an emotional reaction instead of seeking a genuine conversation.", alternative: "I want to discuss the issue directly rather than provoke a reaction.", category: "Rage-baiting" },
+  { pattern: /\b(just kidding|only joking|i'm kidding)\b/i, issue: "A joke may be consensual roasting, but the text alone cannot establish consent or whether both people find it funny.", alternative: "I was trying to tease, but I will stop if that did not feel welcome.", category: "Roasting" },
   { pattern: /\b(delulu|be so for real|bsfr|fr|no cap|lowkey|highkey|it's giving|ick|sus|left me on read|left on read)\b/i, issue: "Slang can make the message sound mocking, dismissive, or harder to interpret during a serious conversation.", alternative: "I want to be clear about how this affected me, so I'll say it directly." },
   { pattern: /\b(you ate|go off|touch grass|lmao|lol|bruh|bestie)\b/i, issue: "This expression may be playful in context, but during conflict it can minimize feelings or sound sarcastic.", alternative: "I hear what you're saying, and I want to respond seriously." },
   { pattern: /(তুমি আমাকে ইগনোর|আমাকে ইগনোর|তুমি কি আমাকে ভালোবাসো না|তোমার জন্যই|সবসময়|কখনোই না|যা ইচ্ছা করো|তুমি বুঝবে না|চুপ করো|বাজে কথা|তুমি স্বার্থপর)/i, issue: "This Bangla wording can communicate blame, dismissal, or an absolute judgment instead of a specific feeling and request.", alternative: "তুমি যখন এভাবে করো, তখন আমার খারাপ লাগে। আমরা কি শান্তভাবে বিষয়টি নিয়ে কথা বলতে পারি?" },
@@ -234,10 +248,11 @@ function analyzeLocally(text) {
   sentences.forEach((sentence) => detectors.forEach((detector) => {
     if (detector.pattern.test(sentence) && !seen.has(detector.issue)) {
       seen.add(detector.issue);
-      findings.push({ original_quote: sentence, issue: detector.issue, better_alternative: detector.alternative });
+      findings.push({ original_quote: sentence, issue: detector.issue, better_alternative: detector.alternative, category: detector.category });
     }
   }));
-  const intensity = findings.length + (/\!{2,}|[A-Z]{5,}/.test(text) ? 1 : 0);
+  const riskFindings = findings.filter((finding) => finding.category !== "Roasting");
+  const intensity = riskFindings.length + (/\!{2,}|[A-Z]{5,}/.test(text) ? 1 : 0);
   const riskLevel = intensity >= 3 ? "High" : intensity >= 1 ? "Medium" : "Low";
   const bangla = /[\u0980-\u09FF]/.test(text);
   const banglish = !bangla && /\b(tumi|tomar|amar|amake|koro|korcho|bhalobasho|shobshomoy|shantovabe)\b/i.test(text);
@@ -247,7 +262,7 @@ function analyzeLocally(text) {
       ? bangla ? "বার্তাটি একটি বাস্তব উদ্বেগ প্রকাশ করছে, তবে কিছু শব্দ অপর পক্ষকে আত্মরক্ষামূলক করে তুলতে পারে।" : "The draft communicates a real concern, but some wording may make the recipient defensive."
       : bangla ? "বার্তাটি তুলনামূলকভাবে সরাসরি এবং কম সংঘাতপূর্ণ মনে হচ্ছে।" : "The draft comes across as relatively direct and low-conflict.";
   let rewrite = text.trim();
-  if (findings.length) {
+  if (riskFindings.length) {
     if (bangla) {
       rewrite = `আমি শান্তভাবে এই বিষয়টি নিয়ে কথা বলতে চাই এবং দোষারোপ না করে আমার অনুভূতিটা বোঝাতে চাই। ${findings[0].better_alternative} তোমার মতামতও শুনতে চাই, যাতে আমরা দুজনের জন্য ভালো একটি সমাধান খুঁজে নিতে পারি।`;
     } else if (banglish) {
@@ -304,6 +319,7 @@ function renderResults(data) {
   temperatureBar.style.width = `${Math.max(8, intensity)}%`;
   temperatureBar.style.background = ["Red Flag", "Biohazard"].includes(normalized.risk_level) ? "#ff8279" : normalized.risk_level === "Yellow" ? "#f2a96d" : "#9ee4a4";
   const categories = [...new Set(normalized.problematic_phrases.map((phrase) => {
+    if (phrase.category) return phrase.category;
     const issue = `${phrase.issue} ${phrase.original_quote}`.toLowerCase();
     if (/guilt|leverage|prove|care/.test(issue)) return "Guilt-tripping";
     if (/absolute|always|never|blame|fault/.test(issue)) return "Blame language";
@@ -314,10 +330,12 @@ function renderResults(data) {
   const aiCategories = normalized.classifications
     .filter((item) => item && item.detected)
     .map((item) => `${item.label || "Flag"}${item.score !== undefined ? ` ${Math.round(Number(item.score) * 100)}%` : ""}`);
-  categoryList.innerHTML = (aiCategories.length ? aiCategories : categories)
+  const displayedCategories = [...new Set([...categories, ...aiCategories])];
+  categoryList.innerHTML = displayedCategories
     .map((category) => `<span class="category-chip">${escapeHtml(category)}</span>`).join("");
   phraseList.innerHTML = normalized.problematic_phrases.length ? normalized.problematic_phrases.map((phrase) => `
     <article class="phrase-card"><p class="mb-3 font-semibold text-ink">“${escapeHtml(phrase.original_quote)}”</p>
+    ${phrase.category ? `<p class="mb-2 text-xs font-bold uppercase tracking-[0.12em] text-[#f2a96d]">${escapeHtml(phrase.category)}</p>` : ""}
     <p class="mb-2 text-sm leading-6 text-muted"><span class="font-bold text-[#d9ded8]">Why it may land poorly:</span> ${escapeHtml(phrase.issue)}</p>
     <p class="text-sm leading-6 text-green-300"><span class="font-bold">Better alternative:</span> ${escapeHtml(phrase.better_alternative)}</p></article>`).join("") : '<p class="text-sm leading-6 text-muted">No clearly problematic phrases were identified.</p>';
   fullRewrite.textContent = normalized.full_rewrite;
