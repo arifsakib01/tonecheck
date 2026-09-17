@@ -74,7 +74,7 @@ function saveHistory(text, risk) {
 }
 
 function analyzeLocally(text) {
-  const sentences = text.match(/[^.!?]+[.!?]+|[^.!?]+$/g)?.map((sentence) => sentence.trim()).filter(Boolean) || [];
+  const sentences = text.match(/[^.!?।]+[.!?।]+|[^.!?।]+$/g)?.map((sentence) => sentence.trim()).filter(Boolean) || [];
   const findings = [];
   const seen = new Set();
   sentences.forEach((sentence) => detectors.forEach((detector) => {
@@ -86,14 +86,22 @@ function analyzeLocally(text) {
   const intensity = findings.length + (/\!{2,}|[A-Z]{5,}/.test(text) ? 1 : 0);
   const riskLevel = intensity >= 3 ? "High" : intensity >= 1 ? "Medium" : "Low";
   const bangla = /[\u0980-\u09FF]/.test(text);
+  const banglish = !bangla && /\b(tumi|tomar|amar|amake|koro|korcho|bhalobasho|shobshomoy|shantovabe)\b/i.test(text);
   const overallVibe = riskLevel === "High"
     ? bangla ? "বার্তাটিতে দোষারোপ, চাপ বা ব্যক্তিগত আক্রমণের অনুভূতি তৈরি হতে পারে।" : "The draft may make the recipient feel blamed, pressured, or personally attacked."
     : riskLevel === "Medium"
       ? bangla ? "বার্তাটি একটি বাস্তব উদ্বেগ প্রকাশ করছে, তবে কিছু শব্দ অপর পক্ষকে আত্মরক্ষামূলক করে তুলতে পারে।" : "The draft communicates a real concern, but some wording may make the recipient defensive."
       : bangla ? "বার্তাটি তুলনামূলকভাবে সরাসরি এবং কম সংঘাতপূর্ণ মনে হচ্ছে।" : "The draft comes across as relatively direct and low-conflict.";
-  const rewrite = findings.length
-    ? `I want to talk about this calmly and be honest about how it affected me without blaming you. ${findings[0].better_alternative} I'd appreciate hearing your perspective so we can find a solution that works for both of us.`
-    : text.trim();
+  let rewrite = text.trim();
+  if (findings.length) {
+    if (bangla) {
+      rewrite = `আমি শান্তভাবে এই বিষয়টি নিয়ে কথা বলতে চাই এবং দোষারোপ না করে আমার অনুভূতিটা বোঝাতে চাই। ${findings[0].better_alternative} তোমার মতামতও শুনতে চাই, যাতে আমরা দুজনের জন্য ভালো একটি সমাধান খুঁজে নিতে পারি।`;
+    } else if (banglish) {
+      rewrite = `Ami shantovabe ei bishoyta niye kotha bolte chai, ebong dosharop na kore amar onuvutita bojhate chai. ${findings[0].better_alternative} Tomar motamot-o shunte chai, jate amra dujoner jonno bhalo ekta solution khujte pari.`;
+    } else {
+      rewrite = `I want to talk about this calmly and be honest about how it affected me without blaming you. ${findings[0].better_alternative} I'd appreciate hearing your perspective so we can find a solution that works for both of us.`;
+    }
+  }
   return { risk_level: riskLevel, overall_vibe: overallVibe, problematic_phrases: findings, full_rewrite: rewrite };
 }
 
