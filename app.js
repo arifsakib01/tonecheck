@@ -12,6 +12,10 @@ const copyButton = document.querySelector("#copy-button");
 const savageReply = document.querySelector("#savage-reply");
 const copySavageButton = document.querySelector("#copy-savage-button");
 const shareButton = document.querySelector("#share-button");
+const aiScanButton = document.querySelector("#ai-scan-button");
+const settingsModal = document.querySelector("#settings-modal");
+const apiKeyInput = document.querySelector("#api-key-input");
+const API_KEY_KEY = "tonecheck_gemini_key";
 const liveTone = document.querySelector("#live-tone");
 const liveToneLabel = document.querySelector("#live-tone-label");
 const liveToneBar = document.querySelector("#live-tone-bar");
@@ -147,17 +151,24 @@ function updateLiveTone(text) {
 }
 
 function renderResults(data) {
-  riskBadge.textContent = `Risk: ${data.risk_level}`;
-  riskBadge.className = `risk-badge risk-${data.risk_level.toLowerCase()}`;
-  overallVibe.textContent = data.overall_vibe;
-  phraseList.innerHTML = data.problematic_phrases.length ? data.problematic_phrases.map((phrase) => `
+  const normalized = {
+    risk_level: ["High", "Medium", "Low"].includes(data.risk_level) ? data.risk_level : "Medium",
+    overall_vibe: data.overall_vibe || "The message may benefit from a closer look.",
+    problematic_phrases: Array.isArray(data.problematic_phrases) ? data.problematic_phrases : [],
+    full_rewrite: data.full_rewrite || draftInput.value.trim(),
+    savage_reply: data.savage_reply || "The subtext is showing. Try saying the direct version next time."
+  };
+  riskBadge.textContent = `Risk: ${normalized.risk_level}`;
+  riskBadge.className = `risk-badge risk-${normalized.risk_level.toLowerCase()}`;
+  overallVibe.textContent = normalized.overall_vibe;
+  phraseList.innerHTML = normalized.problematic_phrases.length ? normalized.problematic_phrases.map((phrase) => `
     <article class="phrase-card"><p class="mb-3 font-semibold text-ink">“${escapeHtml(phrase.original_quote)}”</p>
     <p class="mb-2 text-sm leading-6 text-muted"><span class="font-bold text-[#d9ded8]">Why it may land poorly:</span> ${escapeHtml(phrase.issue)}</p>
     <p class="text-sm leading-6 text-green-300"><span class="font-bold">Better alternative:</span> ${escapeHtml(phrase.better_alternative)}</p></article>`).join("") : '<p class="text-sm leading-6 text-muted">No clearly problematic phrases were identified.</p>';
-  fullRewrite.textContent = data.full_rewrite;
-  savageReply.textContent = data.savage_reply;
+  fullRewrite.textContent = normalized.full_rewrite;
+  savageReply.textContent = normalized.savage_reply;
   resultsContainer.classList.remove("hidden");
-  saveHistory(draftInput.value.trim(), data.risk_level);
+  saveHistory(draftInput.value.trim(), normalized.risk_level);
   resultsContainer.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
@@ -165,6 +176,56 @@ draftInput.addEventListener("input", () => {
   characterCount.textContent = `${draftInput.value.length.toLocaleString()} / 10,000`;
   updateLiveTone(draftInput.value);
 });
+
+function openSettings() {
+  apiKeyInput.value = localStorage.getItem(API_KEY_KEY) || "";
+  settingsModal.classList.remove("hidden");
+  settingsModal.classList.add("flex");
+  apiKeyInput.focus();
+}
+
+function closeSettings() {
+  settingsModal.classList.add("hidden");
+  settingsModal.classList.remove("flex");
+}
+
+async function runAiScan() {
+  const text = draftInput.value.trim();
+  if (!text) {
+    alert("Paste a draft message before scanning.");
+    draftInput.focus();
+    return;
+  }
+  const key = localStorage.getItem(API_KEY_KEY);
+  if (!key) {
+    openSettings();
+    return;
+  }
+  aiScanButton.disabled = true;
+  aiScanButton.textContent = "Thinking...";
+  const instruction = `You are ToneCheck, an expert communication analyst. Analyze the user's draft for manipulation, guilt-tripping, gaslighting, passive aggression, insults, defensiveness, sarcasm, and emotional subtext. Understand English, Gen Z slang, Bangla script, Banglish, code-switching, and context. Return only valid JSON with exactly these fields: risk_level (High, Medium, or Low), overall_vibe (one sentence in the dominant language), problematic_phrases (array of objects with original_quote, issue, better_alternative), full_rewrite (a natural rewrite in the dominant language), savage_reply (one witty, concise, shareable comeback that is assertive and playful, not hateful, threatening, or abusive).`;
+  try {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(key)}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        system_instruction: { parts: [{ text: instruction }] },
+        contents: [{ role: "user", parts: [{ text }] }],
+        generationConfig: { response_mime_type: "application/json", temperature: 0.45 }
+      })
+    });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error?.message || `Gemini request failed (${response.status}).`);
+    const output = payload.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!output) throw new Error("Gemini returned no analysis.");
+    renderResults(JSON.parse(output));
+  } catch (error) {
+    alert(`Deep scan failed: ${error.message}`);
+  } finally {
+    aiScanButton.disabled = false;
+    aiScanButton.textContent = "Deep AI scan";
+  }
+}
 
 scanButton.addEventListener("click", () => {
   const text = draftInput.value.trim();
@@ -179,9 +240,23 @@ scanButton.addEventListener("click", () => {
   window.setTimeout(() => {
     renderResults(analyzeLocally(text));
     scanButton.disabled = false;
-    scanLabel.textContent = "Scan for Red Flags";
+    scanLabel.textContent = "Quick scan";
     loadingSpinner.classList.add("hidden");
   }, 350);
+});
+
+aiScanButton.addEventListener("click", runAiScan);
+document.querySelector("#settings-button").addEventListener("click", openSettings);
+document.querySelector("#close-settings").addEventListener("click", closeSettings);
+document.querySelector("#cancel-settings").addEventListener("click", closeSettings);
+document.querySelector("#save-settings").addEventListener("click", () => {
+  const key = apiKeyInput.value.trim();
+  if (key) localStorage.setItem(API_KEY_KEY, key);
+  else localStorage.removeItem(API_KEY_KEY);
+  closeSettings();
+});
+settingsModal.addEventListener("click", (event) => {
+  if (event.target === settingsModal) closeSettings();
 });
 
 document.querySelectorAll("[data-example]").forEach((button) => button.addEventListener("click", () => {
