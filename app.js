@@ -20,6 +20,7 @@ const aiScanButton = document.querySelector("#ai-scan-button");
 const settingsModal = document.querySelector("#settings-modal");
 const apiKeyInput = document.querySelector("#api-key-input");
 const API_KEY_KEY = "tonecheck_gemini_key";
+const GEMINI_MODEL = "gemini-2.0-flash";
 const liveTone = document.querySelector("#live-tone");
 const liveToneLabel = document.querySelector("#live-tone-label");
 const liveToneBar = document.querySelector("#live-tone-bar");
@@ -161,7 +162,8 @@ function renderResults(data) {
     overall_vibe: data.overall_vibe || "The message may benefit from a closer look.",
     problematic_phrases: Array.isArray(data.problematic_phrases) ? data.problematic_phrases : [],
     full_rewrite: data.full_rewrite || draftInput.value.trim(),
-    savage_reply: data.savage_reply || "The subtext is showing. Try saying the direct version next time."
+    savage_reply: data.savage_reply || "The subtext is showing. Try saying the direct version next time.",
+    classifications: Array.isArray(data.classifications) ? data.classifications : []
   };
   riskBadge.textContent = `Risk: ${normalized.risk_level}`;
   riskBadge.className = `risk-badge risk-${normalized.risk_level.toLowerCase()}`;
@@ -180,7 +182,11 @@ function renderResults(data) {
     if (/sarcast|dismiss|slang|mock/.test(issue)) return "Dismissive tone";
     return "Emotional pressure";
   }))];
-  categoryList.innerHTML = categories.map((category) => `<span class="category-chip">${escapeHtml(category)}</span>`).join("");
+  const aiCategories = normalized.classifications
+    .filter((item) => item && item.detected)
+    .map((item) => `${item.label || "Flag"}${item.score !== undefined ? ` ${Math.round(Number(item.score) * 100)}%` : ""}`);
+  categoryList.innerHTML = (aiCategories.length ? aiCategories : categories)
+    .map((category) => `<span class="category-chip">${escapeHtml(category)}</span>`).join("");
   phraseList.innerHTML = normalized.problematic_phrases.length ? normalized.problematic_phrases.map((phrase) => `
     <article class="phrase-card"><p class="mb-3 font-semibold text-ink">“${escapeHtml(phrase.original_quote)}”</p>
     <p class="mb-2 text-sm leading-6 text-muted"><span class="font-bold text-[#d9ded8]">Why it may land poorly:</span> ${escapeHtml(phrase.issue)}</p>
@@ -221,17 +227,17 @@ async function runAiScan() {
     openSettings();
     return;
   }
-  aiScanButton.disabled = true;
-  aiScanButton.textContent = "Thinking...";
-  const instruction = `You are ToneCheck, an expert communication analyst. Analyze the user's draft for manipulation, guilt-tripping, gaslighting, passive aggression, insults, defensiveness, sarcasm, and emotional subtext. Understand English, Gen Z slang, Bangla script, Banglish, code-switching, and context. Return only valid JSON with exactly these fields: risk_level (High, Medium, or Low), overall_vibe (one sentence in the dominant language), problematic_phrases (array of objects with original_quote, issue, better_alternative), full_rewrite (a natural rewrite in the dominant language), savage_reply (one witty, concise, shareable comeback that is assertive and playful, not hateful, threatening, or abusive).`;
+  scanButton.disabled = true;
+  scanLabel.textContent = "Scanning...";
+  const instruction = `You are ToneCheck, a careful neural communication-analysis engine. Analyze the complete user message in context, not just isolated keywords. The user may paste someone else's message or their own draft. Identify whether it contains red flags, offensive language, manipulation, guilt-tripping, gaslighting, coercion, threats, contempt, insults, passive aggression, sarcasm, or defensiveness. Understand English, Gen Z slang, Bangla, Banglish, code-switching, spelling mistakes, and implied meaning. Do not label a message toxic merely because it expresses a boundary, disagreement, sadness, casual profanity, or a single slang word. Rank overall risk based on severity and likelihood of conflict or harm. Return only valid JSON with exactly these fields: risk_level (High, Medium, or Low), overall_vibe (one concise sentence in the dominant language), classifications (array of objects with label, detected boolean, score from 0 to 1, explanation), problematic_phrases (array of objects with original_quote, issue, better_alternative), full_rewrite (natural rewrite in the dominant language), savage_reply (one context-specific bold, sarcastic, shareable reply if a flag is detected; assertive and playful, never hateful, threatening, or abusive; otherwise say no savage reply is needed).`;
   try {
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(key)}`, {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${encodeURIComponent(key)}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         system_instruction: { parts: [{ text: instruction }] },
         contents: [{ role: "user", parts: [{ text }] }],
-        generationConfig: { response_mime_type: "application/json", temperature: 0.45 }
+        generationConfig: { response_mime_type: "application/json", temperature: 0.35 }
       })
     });
     const payload = await response.json();
@@ -242,30 +248,27 @@ async function runAiScan() {
   } catch (error) {
     alert(`Deep scan failed: ${error.message}`);
   } finally {
-    aiScanButton.disabled = false;
-    aiScanButton.textContent = "Deep AI scan";
+    scanButton.disabled = false;
+    scanLabel.textContent = "Analyze with AI";
   }
 }
 
-scanButton.addEventListener("click", () => {
+scanButton.addEventListener("click", runAiScan);
+aiScanButton.addEventListener("click", () => {
   const text = draftInput.value.trim();
   if (!text) {
-    alert("Paste a draft message before scanning.");
+    alert("Paste a message before scanning.");
     draftInput.focus();
     return;
   }
-  scanButton.disabled = true;
-  scanLabel.textContent = "Scanning...";
-  loadingSpinner.classList.remove("hidden");
+  aiScanButton.disabled = true;
+  aiScanButton.textContent = "Scanning...";
   window.setTimeout(() => {
     renderResults(analyzeLocally(text));
-    scanButton.disabled = false;
-    scanLabel.textContent = "Give me the verdict";
-    loadingSpinner.classList.add("hidden");
+    aiScanButton.disabled = false;
+    aiScanButton.textContent = "Quick local scan";
   }, 350);
 });
-
-aiScanButton.addEventListener("click", runAiScan);
 document.querySelector("#settings-button").addEventListener("click", openSettings);
 document.querySelector("#close-settings").addEventListener("click", closeSettings);
 document.querySelector("#cancel-settings").addEventListener("click", closeSettings);

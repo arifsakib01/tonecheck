@@ -120,11 +120,11 @@
             <span id="character-count" class="text-xs text-muted">0 / 10,000</span>
             <div class="flex flex-col gap-2 sm:flex-row">
               <button id="scan-button" type="button" class="inline-flex items-center justify-center gap-3 rounded-full bg-lime px-6 py-3 text-sm font-extrabold text-[#17200d] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70">
-                <span id="scan-label">Give me the verdict</span>
+                <span id="scan-label">Analyze with AI</span>
                 <span id="loading-spinner" class="spinner hidden" aria-hidden="true"></span>
               </button>
               <button id="ai-scan-button" type="button" class="inline-flex items-center justify-center rounded-full border border-lime px-5 py-3 text-sm font-extrabold text-lime transition hover:bg-lime/10 disabled:cursor-not-allowed disabled:opacity-70">
-                Deeper read
+                Quick local scan
               </button>
             </div>
           </div>
@@ -170,7 +170,7 @@
           </div>
 
           <div class="border-b border-line py-6">
-            <p class="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-muted">How it lands</p>
+            <p class="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-muted">AI verdict</p>
             <p id="overall-vibe" class="leading-7 text-[#d9ded8]"></p>
           </div>
 
@@ -206,7 +206,7 @@
       </main>
 
       <footer class="border-t border-line pt-5 text-center text-xs text-[#667068]">
-        Built for screenshots. Your draft stays local unless you choose Deeper read.
+        AI analysis is optional and uses your own Gemini key. Quick scans stay local.
       </footer>
     </div>
     <div id="settings-modal" class="fixed inset-0 z-20 hidden items-center justify-center bg-black/70 px-5 backdrop-blur-sm" role="dialog" aria-modal="true">
@@ -223,6 +223,6 @@
         </div>
       </div>
     </div>
-    <script src="app.js?v=flags1"></script>
+    <script src="app.js?v=ai-primary"></script>
   </body>
 </html>
