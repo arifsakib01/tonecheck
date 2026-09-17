@@ -33,6 +33,41 @@
   color: #86efac;
 }
 
+.flag-score {
+  display: flex;
+  min-width: 126px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #76552f;
+  border-radius: 1rem;
+  background: #211b12;
+  padding: 0.85rem 1rem;
+}
+
+.flag-score span {
+  color: #f2a96d;
+  font-size: 2rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.flag-score small {
+  margin-top: 0.35rem;
+  color: #a2aaa1;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.category-chip {
+  border-radius: 999px;
+  background: rgba(255, 130, 121, 0.1);
+  padding: 0.35rem 0.6rem;
+  color: #fca5a5;
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
 .phrase-card {
   border-left: 2px solid #f2a96d;
   border-radius: 0 1rem 1rem 0;

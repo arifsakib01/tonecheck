@@ -12,6 +12,10 @@ const copyButton = document.querySelector("#copy-button");
 const savageReply = document.querySelector("#savage-reply");
 const copySavageButton = document.querySelector("#copy-savage-button");
 const shareButton = document.querySelector("#share-button");
+const flagCount = document.querySelector("#flag-count");
+const temperatureLabel = document.querySelector("#temperature-label");
+const temperatureBar = document.querySelector("#temperature-bar");
+const categoryList = document.querySelector("#category-list");
 const aiScanButton = document.querySelector("#ai-scan-button");
 const settingsModal = document.querySelector("#settings-modal");
 const apiKeyInput = document.querySelector("#api-key-input");
@@ -162,6 +166,21 @@ function renderResults(data) {
   riskBadge.textContent = `Risk: ${normalized.risk_level}`;
   riskBadge.className = `risk-badge risk-${normalized.risk_level.toLowerCase()}`;
   overallVibe.textContent = normalized.overall_vibe;
+  const count = normalized.problematic_phrases.length;
+  const intensity = Math.min(100, count * 28 + (normalized.risk_level === "High" ? 15 : 0));
+  flagCount.textContent = count;
+  temperatureLabel.textContent = normalized.risk_level === "High" ? "Heated" : normalized.risk_level === "Medium" ? "Warm" : "Calm";
+  temperatureBar.style.width = `${Math.max(8, intensity)}%`;
+  temperatureBar.style.background = normalized.risk_level === "High" ? "#ff8279" : normalized.risk_level === "Medium" ? "#f2a96d" : "#9ee4a4";
+  const categories = [...new Set(normalized.problematic_phrases.map((phrase) => {
+    const issue = `${phrase.issue} ${phrase.original_quote}`.toLowerCase();
+    if (/guilt|leverage|prove|care/.test(issue)) return "Guilt-tripping";
+    if (/absolute|always|never|blame|fault/.test(issue)) return "Blame language";
+    if (/insult|attack|profan|cruel/.test(issue)) return "Disrespect";
+    if (/sarcast|dismiss|slang|mock/.test(issue)) return "Dismissive tone";
+    return "Emotional pressure";
+  }))];
+  categoryList.innerHTML = categories.map((category) => `<span class="category-chip">${escapeHtml(category)}</span>`).join("");
   phraseList.innerHTML = normalized.problematic_phrases.length ? normalized.problematic_phrases.map((phrase) => `
     <article class="phrase-card"><p class="mb-3 font-semibold text-ink">“${escapeHtml(phrase.original_quote)}”</p>
     <p class="mb-2 text-sm leading-6 text-muted"><span class="font-bold text-[#d9ded8]">Why it may land poorly:</span> ${escapeHtml(phrase.issue)}</p>
