@@ -26,6 +26,12 @@ const scanCount = document.querySelector("#scan-count");
 const HISTORY_KEY = "tonecheck_history";
 let classifierPromise;
 
+function riskColorClass(risk) {
+  if (risk === "Biohazard" || risk === "Red Flag") return "text-red-300";
+  if (risk === "Yellow") return "text-yellow-300";
+  return "text-green-300";
+}
+
 const toneTrainingData = [
   ["manipulation", "If you loved me you would do this. Prove you care."],
   ["manipulation", "After everything I have done for you, this is how you treat me."],
@@ -200,7 +206,7 @@ function loadHistory() {
   historySection.classList.toggle("hidden", !history.length);
   historyList.innerHTML = history.slice(0, 5).map((item) => `
     <button type="button" class="history-item w-full text-left" data-history="${escapeHtml(item.text)}">
-      <span class="truncate">${escapeHtml(item.text)}</span><span class="shrink-0 font-bold ${item.risk === "High" ? "text-red-300" : item.risk === "Medium" ? "text-yellow-300" : "text-green-300"}">${item.risk}</span>
+      <span class="truncate">${escapeHtml(item.text)}</span><span class="shrink-0 font-bold ${riskColorClass(item.risk)}">${escapeHtml(item.risk)}</span>
     </button>`).join("");
   historyList.querySelectorAll("[data-history]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -335,16 +341,18 @@ async function runAiScan() {
     return;
   }
   scanButton.disabled = true;
+  loadingSpinner.classList.remove("hidden");
   scanLabel.textContent = "Training classifier...";
   try {
-  const model = await getOpenSourceClassifier();
-  scanLabel.textContent = "Analyzing...";
-  const prediction = predictTone(model, text);
+    const model = await getOpenSourceClassifier();
+    scanLabel.textContent = "Analyzing...";
+    const prediction = predictTone(model, text);
     renderResults(buildAiResult(text, prediction));
   } catch (error) {
     alert(`The checker could not run: ${error.message}. Please try again.`);
   } finally {
     scanButton.disabled = false;
+    loadingSpinner.classList.add("hidden");
     scanLabel.textContent = "Check my message";
   }
 }
