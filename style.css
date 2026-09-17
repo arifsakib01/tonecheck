@@ -40,6 +40,55 @@
   padding: 1rem;
 }
 
+.example-chip {
+  border: 1px solid #2b342e;
+  border-radius: 999px;
+  padding: 0.45rem 0.7rem;
+  color: #a2aaa1;
+  font-size: 0.72rem;
+  transition: border-color 160ms ease, color 160ms ease, background 160ms ease;
+}
+
+.example-chip:hover {
+  border-color: #c9f56a;
+  background: rgba(201, 245, 106, 0.08);
+  color: #c9f56a;
+}
+
+.stat-card {
+  display: flex;
+  min-height: 92px;
+  flex-direction: column;
+  justify-content: center;
+  border: 1px solid #2b342e;
+  border-radius: 1.25rem;
+  background: #171c19;
+  padding: 1rem 1.25rem;
+}
+
+.stat-number {
+  color: #c9f56a;
+  font-size: 1.35rem;
+  font-weight: 900;
+}
+
+.stat-label {
+  color: #a2aaa1;
+  font-size: 0.72rem;
+}
+
+.history-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-radius: 0.9rem;
+  background: #111612;
+  padding: 0.75rem 1rem;
+  color: #d9ded8;
+  font-size: 0.8rem;
+}
+
 @keyframes spin {
   to { transform: rotate(360deg); }
 }

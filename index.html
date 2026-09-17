@@ -83,8 +83,28 @@
         </section>
 
         <section class="rounded-3xl border border-line bg-panel p-5 shadow-glow sm:p-8">
-          <label for="draft-input" class="mb-3 block text-sm font-bold text-ink">Your draft message</label>
+          <div class="mb-4 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+            <label for="draft-input" class="block text-sm font-bold text-ink">Your draft message</label>
+            <button id="surprise-button" type="button" class="text-left text-xs font-bold text-lime transition hover:text-white sm:text-right">✨ Give me a message to fix</button>
+          </div>
           <textarea id="draft-input" rows="9" maxlength="10000" class="w-full resize-y rounded-2xl border border-line bg-[#111612] p-5 text-base leading-7 text-ink outline-none transition placeholder:text-[#5f6860] focus:border-lime" placeholder="Paste your draft text here..."></textarea>
+          <div class="mt-4">
+            <p class="mb-2 text-[10px] font-bold uppercase tracking-[0.18em] text-muted">Try a vibe</p>
+            <div class="flex flex-wrap gap-2" id="example-buttons">
+              <button type="button" class="example-chip" data-example="Fine, do whatever you want.">Passive-aggressive</button>
+              <button type="button" class="example-chip" data-example="You never listen to me and I’m honestly done trying.">Frustrated</button>
+              <button type="button" class="example-chip" data-example="Hey, I felt a little ignored earlier. Can we talk when you have a minute?">Healthy</button>
+              <button type="button" class="example-chip" data-example="Tumi amake ignore koro keno? Ami ki tomar kache important na?">Banglish</button>
+            </div>
+          </div>
+          <div id="live-tone" class="mt-5 hidden rounded-2xl border border-line bg-[#111612] p-4">
+            <div class="mb-3 flex items-center justify-between gap-3">
+              <span class="text-xs font-bold text-muted">Live tone check</span>
+              <span id="live-tone-label" class="text-xs font-extrabold text-lime">Calm</span>
+            </div>
+            <div class="h-2 overflow-hidden rounded-full bg-[#273029]"><div id="live-tone-bar" class="h-full w-0 rounded-full bg-lime transition-all duration-500"></div></div>
+            <p id="live-tone-tip" class="mt-3 text-xs leading-5 text-muted"></p>
+          </div>
           <div class="mt-4 flex flex-col items-stretch justify-between gap-4 sm:flex-row sm:items-center">
             <span id="character-count" class="text-xs text-muted">0 / 10,000</span>
             <button id="scan-button" type="button" class="inline-flex items-center justify-center gap-3 rounded-full bg-lime px-6 py-3 text-sm font-extrabold text-[#17200d] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70">
@@ -92,6 +112,17 @@
               <span id="loading-spinner" class="spinner hidden" aria-hidden="true"></span>
             </button>
           </div>
+        </section>
+
+        <section class="mt-8 grid gap-4 sm:grid-cols-3">
+          <div class="stat-card"><span class="stat-number" id="scan-count">0</span><span class="stat-label">messages coached</span></div>
+          <div class="stat-card"><span class="stat-number">4</span><span class="stat-label">language styles</span></div>
+          <div class="stat-card"><span class="stat-number">0</span><span class="stat-label">drafts leave your browser</span></div>
+        </section>
+
+        <section id="history-section" class="mt-8 hidden rounded-3xl border border-line bg-panel p-5 sm:p-6">
+          <div class="mb-4 flex items-center justify-between"><h2 class="text-lg font-bold">Recent coaching</h2><button id="clear-history" type="button" class="text-xs font-bold text-muted hover:text-lime">Clear</button></div>
+          <div id="history-list" class="space-y-2"></div>
         </section>
 
         <aside class="my-8 overflow-hidden rounded-2xl border border-line bg-[#111612] p-3" aria-label="Advertisement">
