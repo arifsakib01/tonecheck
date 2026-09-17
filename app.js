@@ -9,6 +9,9 @@ const overallVibe = document.querySelector("#overall-vibe");
 const phraseList = document.querySelector("#phrase-list");
 const fullRewrite = document.querySelector("#full-rewrite");
 const copyButton = document.querySelector("#copy-button");
+const hiddenIntent = document.querySelector("#hidden-intent");
+const clapbackSection = document.querySelector("#clapback-section");
+const clapbackList = document.querySelector("#clapback-list");
 const flagCount = document.querySelector("#flag-count");
 const temperatureLabel = document.querySelector("#temperature-label");
 const temperatureBar = document.querySelector("#temperature-bar");
@@ -133,18 +136,33 @@ function buildAiResult(text, prediction) {
   }));
   const strongestRisk = Math.max(...prediction.labels
     .map((label, index) => label === "healthy boundary" ? 0 : prediction.scores[index]));
-  const riskLevel = local.risk_level === "High" || strongestRisk >= 0.82
-    ? "High"
-    : local.risk_level === "Medium" || strongestRisk >= 0.62
-      ? "Medium"
-      : "Low";
+  const hasThreat = prediction.labels.some((label, index) => label === "threat or coercion" && prediction.scores[index] >= 0.62);
+  const rank = hasThreat || local.problematic_phrases.length >= 4
+    ? "Biohazard"
+    : local.risk_level === "High" || strongestRisk >= 0.82
+      ? "Red Flag"
+      : local.risk_level === "Medium" || strongestRisk >= 0.62
+        ? "Yellow"
+        : "Green";
   const bangla = /[\u0980-\u09FF]/.test(text);
-  const overallVibe = riskLevel === "High"
-    ? bangla ? "মডেল এবং বাক্যভিত্তিক স্ক্যান বার্তাটিতে চাপ, দোষারোপ বা আক্রমণের শক্তিশালী ইঙ্গিত পেয়েছে।" : "The model and phrase scan found strong signals of pressure, blame, or personal attack."
-    : riskLevel === "Medium"
-      ? bangla ? "কিছু শব্দ অপর পক্ষকে আত্মরক্ষামূলক করে তুলতে পারে, যদিও বার্তার মূল উদ্বেগটি বাস্তব হতে পারে।" : "Some wording may make the recipient defensive, even if the underlying concern is real."
-      : bangla ? "মডেলটি বড় কোনো রেড ফ্ল্যাগ পায়নি; বার্তাটি তুলনামূলকভাবে সরাসরি মনে হচ্ছে।" : "The model found no strong red flags; the message comes across as relatively direct.";
-  return { ...local, risk_level: riskLevel, overall_vibe: overallVibe, classifications };
+  const overallVibe = rank === "Biohazard"
+    ? "This is not just bad phrasing; it combines pressure or disrespect with a serious boundary violation. Do not get pulled into proving yourself."
+    : rank === "Red Flag"
+      ? "The sender appears to be using blame, contempt, or emotional pressure to control the direction of the conversation."
+      : rank === "Yellow"
+        ? "The underlying concern may be real, but the wording uses enough pressure or sarcasm to make a calm conversation harder."
+        : bangla ? "বার্তাটিতে বড় কোনো রেড ফ্ল্যাগ পাওয়া যায়নি।" : "No meaningful red flag was detected; this reads as ordinary communication.";
+  const clapbacks = rank === "Green" ? [] : [
+    "I’m happy to discuss the actual issue, but I’m not participating in guilt, insults, or mind games.",
+    "That approach is loud, not convincing. Try saying what you need directly and respectfully.",
+    "I understood the subtext. The answer is still no to pressure disguised as communication."
+  ];
+  const hiddenIntent = rank === "Green"
+    ? "No hidden pressure detected."
+    : rank === "Yellow"
+      ? "The sender may be using sarcasm, guilt, or blame instead of stating the need plainly."
+      : "The sender appears to be trying to shift control of the conversation through pressure or disrespect.";
+  return { ...local, risk_level: rank, overall_vibe: overallVibe, hidden_intent: hiddenIntent, clapbacks, classifications };
 }
 
 const detectors = [
@@ -260,21 +278,25 @@ function updateLiveTone(text) {
 
 function renderResults(data) {
   const normalized = {
-    risk_level: ["High", "Medium", "Low"].includes(data.risk_level) ? data.risk_level : "Medium",
+    risk_level: ["Biohazard", "Red Flag", "Yellow", "Green"].includes(data.risk_level) ? data.risk_level : "Yellow",
     overall_vibe: data.overall_vibe || "The message may benefit from a closer look.",
     problematic_phrases: Array.isArray(data.problematic_phrases) ? data.problematic_phrases : [],
     full_rewrite: data.full_rewrite || draftInput.value.trim(),
+    hidden_intent: data.hidden_intent || data.overall_vibe || "The message needs a closer look.",
+    clapbacks: Array.isArray(data.clapbacks) ? data.clapbacks : [],
     classifications: Array.isArray(data.classifications) ? data.classifications : []
   };
-  riskBadge.textContent = `Risk: ${normalized.risk_level}`;
-  riskBadge.className = `risk-badge risk-${normalized.risk_level.toLowerCase()}`;
+  const rankIcon = { Green: "🟢", Yellow: "🟡", "Red Flag": "🔴", Biohazard: "☢️" };
+  riskBadge.textContent = `${rankIcon[normalized.risk_level]} ${normalized.risk_level}`;
+  riskBadge.className = `risk-badge risk-${normalized.risk_level.toLowerCase().replace(" ", "-")}`;
   overallVibe.textContent = normalized.overall_vibe;
+  hiddenIntent.textContent = normalized.hidden_intent;
   const count = normalized.problematic_phrases.length;
-  const intensity = Math.min(100, count * 28 + (normalized.risk_level === "High" ? 15 : 0));
+  const intensity = Math.min(100, count * 28 + (["Red Flag", "Biohazard"].includes(normalized.risk_level) ? 15 : 0));
   flagCount.textContent = count;
-  temperatureLabel.textContent = normalized.risk_level === "High" ? "Heated" : normalized.risk_level === "Medium" ? "Warm" : "Calm";
+  temperatureLabel.textContent = ["Red Flag", "Biohazard"].includes(normalized.risk_level) ? "Heated" : normalized.risk_level === "Yellow" ? "Warm" : "Calm";
   temperatureBar.style.width = `${Math.max(8, intensity)}%`;
-  temperatureBar.style.background = normalized.risk_level === "High" ? "#ff8279" : normalized.risk_level === "Medium" ? "#f2a96d" : "#9ee4a4";
+  temperatureBar.style.background = ["Red Flag", "Biohazard"].includes(normalized.risk_level) ? "#ff8279" : normalized.risk_level === "Yellow" ? "#f2a96d" : "#9ee4a4";
   const categories = [...new Set(normalized.problematic_phrases.map((phrase) => {
     const issue = `${phrase.issue} ${phrase.original_quote}`.toLowerCase();
     if (/guilt|leverage|prove|care/.test(issue)) return "Guilt-tripping";
@@ -293,6 +315,8 @@ function renderResults(data) {
     <p class="mb-2 text-sm leading-6 text-muted"><span class="font-bold text-[#d9ded8]">Why it may land poorly:</span> ${escapeHtml(phrase.issue)}</p>
     <p class="text-sm leading-6 text-green-300"><span class="font-bold">Better alternative:</span> ${escapeHtml(phrase.better_alternative)}</p></article>`).join("") : '<p class="text-sm leading-6 text-muted">No clearly problematic phrases were identified.</p>';
   fullRewrite.textContent = normalized.full_rewrite;
+  clapbackSection.classList.toggle("hidden", normalized.risk_level === "Green");
+  clapbackList.innerHTML = normalized.clapbacks.map((reply) => `<li>${escapeHtml(reply)}</li>`).join("");
   resultsContainer.classList.remove("hidden");
   saveHistory(draftInput.value.trim(), normalized.risk_level);
   resultsContainer.scrollIntoView({ behavior: "smooth", block: "start" });

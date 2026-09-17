@@ -167,7 +167,12 @@
           </div>
 
           <div class="border-b border-line py-6">
-            <p class="mb-5 text-xs font-bold uppercase tracking-[0.18em] text-muted">Red flags spotted</p>
+            <p class="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-muted">What they may be trying to do</p>
+            <p id="hidden-intent" class="leading-7 text-[#d9ded8]"></p>
+          </div>
+
+          <div class="border-b border-line py-6">
+            <p class="mb-5 text-xs font-bold uppercase tracking-[0.18em] text-muted">Red flag breakdown</p>
             <div id="phrase-list" class="space-y-4"></div>
           </div>
 
@@ -177,6 +182,12 @@
               <button id="copy-button" type="button" class="rounded-full border border-line px-3 py-2 text-xs font-bold text-muted transition hover:border-lime hover:text-lime">Copy to Clipboard</button>
             </div>
             <p id="full-rewrite" class="rounded-2xl bg-[#111612] p-5 leading-7 text-[#d9ded8]"></p>
+          </div>
+
+          <div id="clapback-section" class="mt-6 rounded-2xl border border-[#76552f] bg-[#211b12] p-5">
+            <p class="mb-1 text-xs font-bold uppercase tracking-[0.18em] text-[#f2a96d]">Clapback options</p>
+            <p class="mb-4 text-sm text-[#d9b98e]">Use a boundary, not a fight. Pick the reply that fits.</p>
+            <ol id="clapback-list" class="clapback-list"></ol>
           </div>
 
         </section>

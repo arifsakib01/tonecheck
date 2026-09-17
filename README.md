@@ -15,6 +15,8 @@ The single check button trains the model from scratch in milliseconds and combin
 - Sentence-level phrase cards with explanation and healthier alternatives.
 - Full rewrite generation.
 - One simple from-scratch browser ML check.
+- Four-level risk ranks: Green, Yellow, Red Flag, and Biohazard.
+- Hidden-intent explanations and three assertive, non-violent clapback options for flagged messages.
 - Copy-to-clipboard support.
 - One responsive AdSense placement using publisher `ca-pub-2623777966141033` and slot `8093693497`.
 - An `ads.txt` file declaring the authorized AdSense seller.
