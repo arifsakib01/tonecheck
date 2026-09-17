@@ -26,8 +26,89 @@ const historySection = document.querySelector("#history-section");
 const historyList = document.querySelector("#history-list");
 const scanCount = document.querySelector("#scan-count");
 const HISTORY_KEY = "tonecheck_history";
-const OPEN_SOURCE_MODEL = "Xenova/distilbert-base-uncased-mnli";
 let classifierPromise;
+
+const toneTrainingData = [
+  ["manipulation", "If you loved me you would do this. Prove you care."],
+  ["manipulation", "After everything I have done for you, this is how you treat me."],
+  ["manipulation", "You owe me. Do what I say or I will make you regret it."],
+  ["manipulation", "A real friend would never say no to me."],
+  ["offensive language", "You are an idiot and a pathetic loser."],
+  ["offensive language", "Shut up, you stupid asshole."],
+  ["offensive language", "What a disgusting and worthless thing to say."],
+  ["offensive language", "You are so damn selfish and useless."],
+  ["passive aggression", "Fine, do whatever you want. I guess I do not matter."],
+  ["passive aggression", "Apparently you are too busy to reply to me."],
+  ["passive aggression", "No worries, I am used to being ignored."],
+  ["passive aggression", "Sure, that is just perfect. Whatever."],
+  ["threat or coercion", "If you leave, you will be sorry."],
+  ["threat or coercion", "Do this now or I will expose you."],
+  ["threat or coercion", "You better answer me or there will be consequences."],
+  ["threat or coercion", "I will hurt myself if you do not stay."],
+  ["defensiveness", "I did nothing wrong, you are the problem."],
+  ["defensiveness", "Why are you attacking me? I was only trying to help."],
+  ["defensiveness", "You always criticize me, so none of this is my fault."],
+  ["defensiveness", "Stop bringing up the past and look at what you did."],
+  ["sarcasm or mockery", "Wow, congratulations on finally doing the bare minimum."],
+  ["sarcasm or mockery", "Sure, genius, explain that one again."],
+  ["sarcasm or mockery", "That is cute. Did you really think that would work?"],
+  ["sarcasm or mockery", "Great job ruining everything, as usual."],
+  ["healthy boundary", "I am not comfortable with that plan, so I need some time to think."],
+  ["healthy boundary", "I felt hurt when that happened. Can we talk about it calmly?"],
+  ["healthy boundary", "I cannot continue this conversation while we are insulting each other."],
+  ["healthy boundary", "I need clearer communication and a respectful compromise."]
+];
+
+const toneLabels = [...new Set(toneTrainingData.map(([label]) => label))];
+
+function featureTokens(text) {
+  const words = String(text).toLowerCase().match(/[\p{L}\p{N}']+/gu) || [];
+  const tokens = words.map((word) => word.length > 3 ? word.replace(/'s$/, "") : word);
+  return [...tokens, ...tokens.slice(0, -1).map((word, index) => `${word}_${tokens[index + 1]}`)];
+}
+
+function sigmoid(value) {
+  return 1 / (1 + Math.exp(-Math.max(-30, Math.min(30, value))));
+}
+
+function trainToneModel() {
+  const documents = toneTrainingData.map(([, text]) => featureTokens(text));
+  const documentFrequency = new Map();
+  documents.forEach((tokens) => [...new Set(tokens)].forEach((token) => {
+    documentFrequency.set(token, (documentFrequency.get(token) || 0) + 1);
+  }));
+  const vocabulary = [...documentFrequency.keys()].filter((token) => documentFrequency.get(token) > 1);
+  const index = new Map(vocabulary.map((token, position) => [token, position]));
+  const idf = vocabulary.map((token) => Math.log((documents.length + 1) / (documentFrequency.get(token) + 1)) + 1);
+  const vectorize = (text) => {
+    const counts = new Map();
+    featureTokens(text).forEach((token) => counts.set(token, (counts.get(token) || 0) + 1));
+    const vector = new Float32Array(vocabulary.length);
+    counts.forEach((count, token) => {
+      const position = index.get(token);
+      if (position !== undefined) vector[position] = (1 + Math.log(count)) * idf[position];
+    });
+    return vector;
+  };
+  const vectors = documents.map((tokens) => vectorize(tokens.join(" ")));
+  const weights = new Map(toneLabels.map((label) => [label, new Float32Array(vocabulary.length + 1)]));
+  toneLabels.forEach((label) => {
+    const target = toneTrainingData.map(([itemLabel]) => itemLabel === label ? 1 : 0);
+    const modelWeights = weights.get(label);
+    for (let epoch = 0; epoch < 180; epoch += 1) {
+      vectors.forEach((vector, row) => {
+        let score = modelWeights[0];
+        for (let feature = 0; feature < vector.length; feature += 1) score += modelWeights[feature + 1] * vector[feature];
+        const error = sigmoid(score) - target[row];
+        modelWeights[0] -= 0.08 * error;
+        for (let feature = 0; feature < vector.length; feature += 1) {
+          modelWeights[feature + 1] -= 0.08 * error * vector[feature];
+        }
+      });
+    }
+  });
+  return { vectorize, weights, labels: toneLabels };
+}
 
 const detectors = [
   { pattern: /\b(fine,?\s+do whatever you want|whatever|i don't care)\b/i, issue: "Dismissive wording hides a real boundary and can pressure the recipient through indirect resentment.", alternative: "I'm not comfortable with this, and I'd like us to discuss an option that works for both of us." },
@@ -147,14 +228,20 @@ function updateLiveTone(text) {
 
   async function getOpenSourceClassifier() {
     if (!classifierPromise) {
-      classifierPromise = import("https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.2")
-        .then(({ env, pipeline }) => {
-          env.allowLocalModels = false;
-          env.useBrowserCache = true;
-          return pipeline("zero-shot-classification", OPEN_SOURCE_MODEL);
-        });
+      classifierPromise = Promise.resolve().then(trainToneModel);
     }
     return classifierPromise;
+  }
+
+  function predictTone(model, text) {
+    const vector = model.vectorize(text);
+    const scores = model.labels.map((label) => {
+      const weights = model.weights.get(label);
+      let value = weights[0];
+      for (let feature = 0; feature < vector.length; feature += 1) value += weights[feature + 1] * vector[feature];
+      return sigmoid(value);
+    });
+    return { labels: model.labels, scores };
   }
 
   function buildAiResult(text, prediction) {
@@ -164,8 +251,8 @@ function updateLiveTone(text) {
       detected: prediction.scores[index] >= 0.55,
       score: Number(prediction.scores[index].toFixed(3)),
       explanation: prediction.scores[index] >= 0.55
-        ? `The on-device model found language consistent with ${label.toLowerCase()}.`
-        : `The on-device model found limited evidence of ${label.toLowerCase()}.`
+        ? `The from-scratch browser classifier found language consistent with ${label.toLowerCase()}.`
+        : `The classifier found limited evidence of ${label.toLowerCase()}.`
     }));
     const strongestRisk = Math.max(...prediction.labels
       .map((label, index) => label === "healthy boundary" ? 0 : prediction.scores[index]));
@@ -263,19 +350,11 @@ async function runAiScan() {
     return;
   }
   scanButton.disabled = true;
-  scanLabel.textContent = "Loading model...";
+  scanLabel.textContent = "Training classifier...";
   try {
-    const classifier = await getOpenSourceClassifier();
-    scanLabel.textContent = "Analyzing...";
-    const prediction = await classifier(text, [
-      "manipulation",
-      "offensive language",
-      "passive aggression",
-      "threat or coercion",
-      "defensiveness",
-      "sarcasm or mockery",
-      "healthy boundary"
-    ], { multi_label: true });
+  const model = await getOpenSourceClassifier();
+  scanLabel.textContent = "Analyzing...";
+  const prediction = predictTone(model, text);
     renderResults(buildAiResult(text, prediction));
   } catch (error) {
     alert(`On-device AI could not load: ${error.message}. Try Quick local scan instead.`);

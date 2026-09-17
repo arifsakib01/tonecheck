@@ -1,8 +1,8 @@
 # ToneCheck
 
-ToneCheck is a frontend-only communication checker for messages someone sent you or a draft you are about to send. Its primary workflow runs an open-source DistilBERT MNLI model in the browser through Transformers.js to classify red flags, offensive language, manipulation, passive aggression, defensiveness, and risk. A deterministic phrase engine supplies exact evidence, rewrites, and playful replies.
+ToneCheck is a frontend-only communication checker for messages someone sent you or a draft you are about to send. Its primary workflow trains a compact one-vs-rest logistic-regression classifier in the browser from labeled tone examples. It learns TF-IDF word and phrase weights with gradient descent to classify red flags, offensive language, manipulation, passive aggression, defensiveness, sarcasm, coercion, and healthy boundaries. A deterministic phrase engine supplies exact evidence, rewrites, and playful replies.
 
-Both scan modes are browser-only. Analyze on-device downloads and caches the open-source ONNX model on first use; Quick local scan uses JavaScript pattern matching and does not download a model. No backend, database, API key, or build tool is required.
+Both scan modes are browser-only. Analyze with built-in ML trains the model from scratch in milliseconds; Quick local scan uses JavaScript pattern matching and does not train a model. No backend, database, external model, API key, or build tool is required.
 
 ## Features
 
@@ -15,7 +15,7 @@ Both scan modes are browser-only. Analyze on-device downloads and caches the ope
 - Sentence-level phrase cards with explanation and healthier alternatives.
 - Full rewrite generation.
 - A shareable “savage mode” reply designed for playful social posts.
-- Open-source on-device AI verdicts plus a deterministic Quick local scan.
+- From-scratch browser ML verdicts plus a deterministic Quick local scan.
 - Copy-to-clipboard support.
 - One responsive AdSense placement using publisher `ca-pub-2623777966141033` and slot `8093693497`.
 - An `ads.txt` file declaring the authorized AdSense seller.
@@ -26,7 +26,7 @@ Both scan modes are browser-only. Analyze on-device downloads and caches the ope
 | --- | --- |
 | `index.html` | Page structure, SEO metadata, model explanation, and AdSense markup |
 | `style.css` | Component styles for the scanner, risk meter, results, and history |
-| `app.js` | Local detectors, Transformers.js model scan, scoring, sharing, and clipboard behavior |
+| `app.js` | Local detectors, TF-IDF/logistic ML training and scoring, sharing, and clipboard behavior |
 | `ads.txt` | Authorized AdSense seller declaration |
 | `robots.txt` / `sitemap.xml` | Search crawler guidance |
 
@@ -82,10 +82,10 @@ Opening with `file://` is useful for a quick visual preview, but clipboard permi
 
 ## Privacy and limitations
 
-ToneCheck is a communication aid, not a therapist, mediator, or definitive toxicity classifier. The open-source model provides repeatable classification scores but can still miss context, dialect, code-switching, and unfamiliar slang. The model is downloaded from the jsDelivr and Hugging Face public CDNs and then cached by the browser; message text is processed in the browser.
+ToneCheck is a communication aid, not a therapist, mediator, or definitive toxicity classifier. The built-in model provides repeatable scores but is intentionally small and learns from a limited embedded dataset, so it can miss context, dialect, code-switching, and unfamiliar slang. Message text and training stay in the browser.
 
 The AdSense script is a third-party request and may use cookies or similar technologies. Publish a privacy notice and obtain consent where legally required.
 
-## AI and privacy note
+## Built-in ML and privacy note
 
-The primary scan uses `Xenova/distilbert-base-uncased-mnli`, an open-source ONNX model, through Transformers.js. It runs with deterministic settings and no remote inference API. The model is English-focused; the phrase engine remains responsible for Bangla and Banglish patterns. A first visit requires downloading the model files from public CDNs.
+The primary scan is a from-scratch educational ML pipeline: tokenization, unigrams/bigrams, TF-IDF weighting, one-vs-rest logistic regression, and gradient-descent training are implemented directly in `app.js`. It uses no pretrained model or remote inference API. The model is English-focused; the phrase engine remains responsible for Bangla and Banglish patterns. For production-grade precision, expand the labeled dataset and evaluate it against representative human-reviewed examples.
