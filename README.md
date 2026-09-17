@@ -2,7 +2,7 @@
 
 ToneCheck is a frontend-only communication checker for draft messages. It flags common toxic, passive-aggressive, dismissive, blaming, manipulative, and insulting phrases, then suggests a clearer alternative and a full rewrite.
 
-The current implementation is deliberately browser-only: draft text is analyzed locally with JavaScript pattern matching. No Gemini API key, backend, database, build tool, or account is required to run the analyzer.
+The default Quick scan is deliberately browser-only: draft text is analyzed locally with JavaScript pattern matching. An optional Deeper read uses Gemini for contextual analysis when the user supplies their own API key. No backend, database, or build tool is required.
 
 ## Features
 
@@ -17,16 +17,18 @@ The current implementation is deliberately browser-only: draft text is analyzed 
 - A shareable “savage mode” reply designed for playful social posts.
 - Quick local verdicts plus an optional contextual AI deep read.
 - Copy-to-clipboard support.
-- AdSense placements using publisher `ca-pub-2623777966141033` and slot `8093693497`.
+- One responsive AdSense placement using publisher `ca-pub-2623777966141033` and slot `8093693497`.
 - An `ads.txt` file declaring the authorized AdSense seller.
 
 ## Files
 
 | File | Purpose |
 | --- | --- |
-| `index.html` | Page structure, Tailwind CDN configuration, and AdSense markup |
-| `style.css` | Spinner, risk badges, and phrase-card styles |
-| `app.js` | Local detectors, scoring, rendering, and clipboard behavior |
+| `index.html` | Page structure, SEO metadata, AI settings, and AdSense markup |
+| `style.css` | Component styles for the scanner, risk meter, results, and history |
+| `app.js` | Local detectors, optional Gemini scan, scoring, sharing, and clipboard behavior |
+| `ads.txt` | Authorized AdSense seller declaration |
+| `robots.txt` / `sitemap.xml` | Search crawler guidance |
 
 ## Run locally
 
@@ -76,14 +78,14 @@ Opening with `file://` is useful for a quick visual preview, but clipboard permi
 - Add the deployed site in AdSense and complete site review before expecting production ads.
 - Add a privacy policy and cookie/consent notice appropriate to your visitors' regions before monetizing.
 - Do not click your own ads or encourage visitors to click them.
-- The page currently uses the standard AdSense `<ins class="adsbygoogle">` format. It is not an AMP document, so AMP-only markup is intentionally not used.
+- The page uses one standard AdSense `<ins class="adsbygoogle">` format. It is not an AMP document, so AMP-only markup is intentionally not used.
 
 ## Privacy and limitations
 
-ToneCheck is a heuristic detector, not a therapist, mediator, or definitive toxicity classifier. It can miss context, sarcasm, dialect, code-switching, and unfamiliar slang. Text remains in the page memory and is not sent to an AI service by this version.
+ToneCheck is a heuristic detector, not a therapist, mediator, or definitive toxicity classifier. Quick scan can miss context, sarcasm, dialect, code-switching, and unfamiliar slang. Deeper read sends the draft to Google Gemini only after the user explicitly chooses AI mode and supplies a key.
 
 The AdSense script is a third-party request and may use cookies or similar technologies. Publish a privacy notice and obtain consent where legally required.
 
-## Future open-source AI option
+## AI and security note
 
-If a richer multilingual model is needed later, a local Ollama service or a self-hosted multilingual model can be added. A browser-only page should not contain a shared private model key; any hosted model integration should use a protected backend or a user-provided local endpoint.
+The optional Gemini integration is a direct browser-to-Google request using a user-provided key. The project does not include a shared secret. For a public production product, consider moving AI requests behind a protected backend, adding rate limiting, and offering a local Ollama endpoint for users who want an open-source model.
