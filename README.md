@@ -1,8 +1,8 @@
 # ToneCheck
 
-ToneCheck is a frontend-only communication checker for messages someone sent you or a draft you are about to send. Its primary workflow uses Gemini to analyze the full context and classify red flags, offensive language, manipulation, passive aggression, defensiveness, and risk, then produce evidence, a rewrite, and a playful savage reply. A local fallback is available when no API key is configured.
+ToneCheck is a frontend-only communication checker for messages someone sent you or a draft you are about to send. Its primary workflow runs an open-source DistilBERT MNLI model in the browser through Transformers.js to classify red flags, offensive language, manipulation, passive aggression, defensiveness, and risk. A deterministic phrase engine supplies exact evidence, rewrites, and playful replies.
 
-The default Quick scan is deliberately browser-only: draft text is analyzed locally with JavaScript pattern matching. An optional Deeper read uses Gemini for contextual analysis when the user supplies their own API key. No backend, database, or build tool is required.
+Both scan modes are browser-only. Analyze on-device downloads and caches the open-source ONNX model on first use; Quick local scan uses JavaScript pattern matching and does not download a model. No backend, database, API key, or build tool is required.
 
 ## Features
 
@@ -15,7 +15,7 @@ The default Quick scan is deliberately browser-only: draft text is analyzed loca
 - Sentence-level phrase cards with explanation and healthier alternatives.
 - Full rewrite generation.
 - A shareable “savage mode” reply designed for playful social posts.
-- AI-first contextual verdicts plus a Quick local scan fallback.
+- Open-source on-device AI verdicts plus a deterministic Quick local scan.
 - Copy-to-clipboard support.
 - One responsive AdSense placement using publisher `ca-pub-2623777966141033` and slot `8093693497`.
 - An `ads.txt` file declaring the authorized AdSense seller.
@@ -24,9 +24,9 @@ The default Quick scan is deliberately browser-only: draft text is analyzed loca
 
 | File | Purpose |
 | --- | --- |
-| `index.html` | Page structure, SEO metadata, AI settings, and AdSense markup |
+| `index.html` | Page structure, SEO metadata, model explanation, and AdSense markup |
 | `style.css` | Component styles for the scanner, risk meter, results, and history |
-| `app.js` | Local detectors, optional Gemini scan, scoring, sharing, and clipboard behavior |
+| `app.js` | Local detectors, Transformers.js model scan, scoring, sharing, and clipboard behavior |
 | `ads.txt` | Authorized AdSense seller declaration |
 | `robots.txt` / `sitemap.xml` | Search crawler guidance |
 
@@ -82,10 +82,10 @@ Opening with `file://` is useful for a quick visual preview, but clipboard permi
 
 ## Privacy and limitations
 
-ToneCheck is a heuristic detector, not a therapist, mediator, or definitive toxicity classifier. Quick scan can miss context, sarcasm, dialect, code-switching, and unfamiliar slang. Deeper read sends the draft to Google Gemini only after the user explicitly chooses AI mode and supplies a key.
+ToneCheck is a communication aid, not a therapist, mediator, or definitive toxicity classifier. The open-source model provides repeatable classification scores but can still miss context, dialect, code-switching, and unfamiliar slang. The model is downloaded from the jsDelivr and Hugging Face public CDNs and then cached by the browser; message text is processed in the browser.
 
 The AdSense script is a third-party request and may use cookies or similar technologies. Publish a privacy notice and obtain consent where legally required.
 
-## AI and security note
+## AI and privacy note
 
-The optional Gemini integration is a direct browser-to-Google request using a user-provided key. The project does not include a shared secret. For a public production product, consider moving AI requests behind a protected backend, adding rate limiting, and offering a local Ollama endpoint for users who want an open-source model.
+The primary scan uses `Xenova/distilbert-base-uncased-mnli`, an open-source ONNX model, through Transformers.js. It runs with deterministic settings and no remote inference API. The model is English-focused; the phrase engine remains responsible for Bangla and Banglish patterns. A first visit requires downloading the model files from public CDNs.

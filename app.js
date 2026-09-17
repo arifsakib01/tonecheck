@@ -18,9 +18,6 @@ const temperatureBar = document.querySelector("#temperature-bar");
 const categoryList = document.querySelector("#category-list");
 const aiScanButton = document.querySelector("#ai-scan-button");
 const settingsModal = document.querySelector("#settings-modal");
-const apiKeyInput = document.querySelector("#api-key-input");
-const API_KEY_KEY = "tonecheck_gemini_key";
-const GEMINI_MODEL = "gemini-2.0-flash";
 const liveTone = document.querySelector("#live-tone");
 const liveToneLabel = document.querySelector("#live-tone-label");
 const liveToneBar = document.querySelector("#live-tone-bar");
@@ -29,6 +26,8 @@ const historySection = document.querySelector("#history-section");
 const historyList = document.querySelector("#history-list");
 const scanCount = document.querySelector("#scan-count");
 const HISTORY_KEY = "tonecheck_history";
+const OPEN_SOURCE_MODEL = "Xenova/distilbert-base-uncased-mnli";
+let classifierPromise;
 
 const detectors = [
   { pattern: /\b(fine,?\s+do whatever you want|whatever|i don't care)\b/i, issue: "Dismissive wording hides a real boundary and can pressure the recipient through indirect resentment.", alternative: "I'm not comfortable with this, and I'd like us to discuss an option that works for both of us." },
@@ -145,6 +144,49 @@ function updateLiveTone(text) {
     liveTone.classList.add("hidden");
     return;
   }
+
+  async function getOpenSourceClassifier() {
+    if (!classifierPromise) {
+      classifierPromise = import("https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.2")
+        .then(({ env, pipeline }) => {
+          env.allowLocalModels = false;
+          env.useBrowserCache = true;
+          return pipeline("zero-shot-classification", OPEN_SOURCE_MODEL);
+        });
+    }
+    return classifierPromise;
+  }
+
+  function buildAiResult(text, prediction) {
+    const local = analyzeLocally(text);
+    const classifications = prediction.labels.map((label, index) => ({
+      label,
+      detected: prediction.scores[index] >= 0.55,
+      score: Number(prediction.scores[index].toFixed(3)),
+      explanation: prediction.scores[index] >= 0.55
+        ? `The on-device model found language consistent with ${label.toLowerCase()}.`
+        : `The on-device model found limited evidence of ${label.toLowerCase()}.`
+    }));
+    const strongestRisk = Math.max(...prediction.labels
+      .map((label, index) => label === "healthy boundary" ? 0 : prediction.scores[index]));
+    const riskLevel = local.risk_level === "High" || strongestRisk >= 0.82
+      ? "High"
+      : local.risk_level === "Medium" || strongestRisk >= 0.62
+        ? "Medium"
+        : "Low";
+    const bangla = /[\u0980-\u09FF]/.test(text);
+    const overallVibe = riskLevel === "High"
+      ? bangla ? "অন-ডিভাইস মডেল এবং বাক্যভিত্তিক স্ক্যান বার্তাটিতে চাপ, দোষারোপ বা আক্রমণের শক্তিশালী ইঙ্গিত পেয়েছে।" : "The on-device model and phrase scan found strong signals of pressure, blame, or personal attack."
+      : riskLevel === "Medium"
+        ? bangla ? "কিছু শব্দ অপর পক্ষকে আত্মরক্ষামূলক করে তুলতে পারে, যদিও বার্তার মূল উদ্বেগটি বাস্তব হতে পারে।" : "Some wording may make the recipient defensive, even if the underlying concern is real."
+        : bangla ? "মডেলটি বড় কোনো রেড ফ্ল্যাগ পায়নি; বার্তাটি তুলনামূলকভাবে সরাসরি মনে হচ্ছে।" : "The model found no strong red flags; the message comes across as relatively direct.";
+    return {
+      ...local,
+      risk_level: riskLevel,
+      overall_vibe: overallVibe,
+      classifications
+    };
+  }
   const findings = analyzeLocally(text).problematic_phrases.length;
   const intensity = Math.min(100, findings * 27 + (/\!{2,}|[A-Z]{5,}/.test(text) ? 18 : 0));
   const level = intensity >= 70 ? "High tension" : intensity >= 30 ? "Needs a softer touch" : "Calm and clear";
@@ -204,10 +246,8 @@ draftInput.addEventListener("input", () => {
 });
 
 function openSettings() {
-  apiKeyInput.value = localStorage.getItem(API_KEY_KEY) || "";
   settingsModal.classList.remove("hidden");
   settingsModal.classList.add("flex");
-  apiKeyInput.focus();
 }
 
 function closeSettings() {
@@ -222,34 +262,26 @@ async function runAiScan() {
     draftInput.focus();
     return;
   }
-  const key = localStorage.getItem(API_KEY_KEY);
-  if (!key) {
-    openSettings();
-    return;
-  }
   scanButton.disabled = true;
-  scanLabel.textContent = "Scanning...";
-  const instruction = `You are ToneCheck, a careful neural communication-analysis engine. Analyze the complete user message in context, not just isolated keywords. The user may paste someone else's message or their own draft. Identify whether it contains red flags, offensive language, manipulation, guilt-tripping, gaslighting, coercion, threats, contempt, insults, passive aggression, sarcasm, or defensiveness. Understand English, Gen Z slang, Bangla, Banglish, code-switching, spelling mistakes, and implied meaning. Do not label a message toxic merely because it expresses a boundary, disagreement, sadness, casual profanity, or a single slang word. Rank overall risk based on severity and likelihood of conflict or harm. Return only valid JSON with exactly these fields: risk_level (High, Medium, or Low), overall_vibe (one concise sentence in the dominant language), classifications (array of objects with label, detected boolean, score from 0 to 1, explanation), problematic_phrases (array of objects with original_quote, issue, better_alternative), full_rewrite (natural rewrite in the dominant language), savage_reply (one context-specific bold, sarcastic, shareable reply if a flag is detected; assertive and playful, never hateful, threatening, or abusive; otherwise say no savage reply is needed).`;
+  scanLabel.textContent = "Loading model...";
   try {
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${encodeURIComponent(key)}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        system_instruction: { parts: [{ text: instruction }] },
-        contents: [{ role: "user", parts: [{ text }] }],
-        generationConfig: { response_mime_type: "application/json", temperature: 0.35 }
-      })
-    });
-    const payload = await response.json();
-    if (!response.ok) throw new Error(payload.error?.message || `Gemini request failed (${response.status}).`);
-    const output = payload.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!output) throw new Error("Gemini returned no analysis.");
-    renderResults(JSON.parse(output));
+    const classifier = await getOpenSourceClassifier();
+    scanLabel.textContent = "Analyzing...";
+    const prediction = await classifier(text, [
+      "manipulation",
+      "offensive language",
+      "passive aggression",
+      "threat or coercion",
+      "defensiveness",
+      "sarcasm or mockery",
+      "healthy boundary"
+    ], { multi_label: true });
+    renderResults(buildAiResult(text, prediction));
   } catch (error) {
-    alert(`Deep scan failed: ${error.message}`);
+    alert(`On-device AI could not load: ${error.message}. Try Quick local scan instead.`);
   } finally {
     scanButton.disabled = false;
-    scanLabel.textContent = "Analyze with AI";
+    scanLabel.textContent = "Analyze on-device";
   }
 }
 
@@ -272,12 +304,7 @@ aiScanButton.addEventListener("click", () => {
 document.querySelector("#settings-button").addEventListener("click", openSettings);
 document.querySelector("#close-settings").addEventListener("click", closeSettings);
 document.querySelector("#cancel-settings").addEventListener("click", closeSettings);
-document.querySelector("#save-settings").addEventListener("click", () => {
-  const key = apiKeyInput.value.trim();
-  if (key) localStorage.setItem(API_KEY_KEY, key);
-  else localStorage.removeItem(API_KEY_KEY);
-  closeSettings();
-});
+document.querySelector("#save-settings").addEventListener("click", closeSettings);
 settingsModal.addEventListener("click", (event) => {
   if (event.target === settingsModal) closeSettings();
 });
